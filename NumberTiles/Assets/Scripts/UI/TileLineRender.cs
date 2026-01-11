@@ -5,7 +5,6 @@ namespace NTGame
 {
     public class TileLineRender : MonoBehaviour
     {
-        [Header("Line Style")]
         [Min(1f)] 
         public float Thickness = 30f;
 

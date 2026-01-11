@@ -14,6 +14,7 @@ namespace NTGame
         public int StageShapeHash;
         public int Rows;
         public int Cols;
+        public int CellCount;
 
         // board (row-major)
         public int[] Values;

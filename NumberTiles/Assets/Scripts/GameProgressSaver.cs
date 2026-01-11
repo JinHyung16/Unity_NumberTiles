@@ -6,7 +6,7 @@ namespace NTGame
 {
     public static class GameProgressSaver
     {
-        readonly static string JsonFileName = "Progress.json";
+        static readonly string StageFilePrefix = "Stage_";
         public static bool SaveCurrent()
         {
             var data = Build();
@@ -22,6 +22,7 @@ namespace NTGame
                 StageKey = tileManager.CurrentStageKey,
                 Rows = tileManager.Rows,
                 Cols = tileManager.Cols,
+                CellCount = tileManager.CellCount,
             };
 
             int total = data.Rows * data.Cols;
@@ -71,11 +72,47 @@ namespace NTGame
                 return;
 
             string fileName = GetFileName(stageKey);
-            TryDelete(GetResourcesJsonDataPath(), fileName);
-            TryDelete(GetPersistentJsonDataPath(), fileName);
+            Helper.TryDeleteFromJsonData(fileName, "GameProgressSaver");
+        }
 
-            TryDelete(GetResourcesJsonDataPath(), JsonFileName);
-            TryDelete(GetPersistentJsonDataPath(), JsonFileName);
+        public static void DeleteAll()
+        {
+            try
+            {
+                string folder = Helper.GetJsonDataPath();
+                if (Directory.Exists(folder) == false)
+                    return;
+
+                var files = Directory.GetFiles(folder, $"{StageFilePrefix}*.json");
+                if (files == null || files.Length <= 0)
+                    return;
+
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string fileName = Path.GetFileName(files[i]);
+                    Helper.TryDeleteFromJsonData(fileName, "GameProgressSaver");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[GameProgressSaver] DeleteAll 실패 ({e.GetType().Name}) {e.Message}");
+            }
+        }
+
+        public static bool TryFindMostRecentStageKey(out int stageKey)
+        {
+            stageKey = 0;
+
+            long bestSavedAt = -1;
+            int bestStageKey = 0;
+
+            ScanFolderForStageProgress(Helper.GetJsonDataPath(), ref bestSavedAt, ref bestStageKey);
+
+            if (bestStageKey <= 0)
+                return false;
+
+            stageKey = bestStageKey;
+            return true;
         }
 
         static string GetFileName(int stageKey)
@@ -83,78 +120,106 @@ namespace NTGame
             return $"Stage_{stageKey}.json";
         }
 
-        static bool SaveToJsonDataFolder(GameProgressData data, string fileName)
-        {
-            string json = JsonUtility.ToJson(data, true);
-
-            // 요청: Assets/Resources/JsonData
-            // 주의: 빌드 런타임에선 쓰기 불가할 수 있어 persistentDataPath로 폴백
-            string resourcesPath = GetResourcesJsonDataPath();
-            if (TryWrite(resourcesPath, fileName, json))
-                return true;
-
-            string fallbackPath = GetPersistentJsonDataPath();
-            return TryWrite(fallbackPath, fileName, json);
-        }
-
-        static bool TryReadFromJsonDataFolder(string fileName, out string json)
-        {
-            json = null;
-
-            string resourcesPath = Path.Combine(GetResourcesJsonDataPath(), fileName);
-            if (File.Exists(resourcesPath))
-            {
-                json = File.ReadAllText(resourcesPath);
-                return true;
-            }
-
-            string persistentPath = Path.Combine(GetPersistentJsonDataPath(), fileName);
-            if (File.Exists(persistentPath))
-            {
-                json = File.ReadAllText(persistentPath);
-                return true;
-            }
-
-            return false;
-        }
-
-        static string GetResourcesJsonDataPath()
-        {
-            return Path.Combine(Application.dataPath, "Resources", "JsonData");
-        }
-
-        static string GetPersistentJsonDataPath()
-        {
-            return Path.Combine(Application.persistentDataPath, "JsonData");
-        }
-
-        static bool TryWrite(string folderPath, string fileName, string content)
+        static void ScanFolderForStageProgress(string folderPath, ref long bestSavedAt, ref int bestStageKey)
         {
             try
             {
-                Directory.CreateDirectory(folderPath);
-                File.WriteAllText(Path.Combine(folderPath, fileName), content);
-                return true;
+                if (Directory.Exists(folderPath) == false)
+                    return;
+
+                var files = Directory.GetFiles(folderPath, $"{StageFilePrefix}*.json");
+                if (files == null || files.Length <= 0)
+                    return;
+
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string file = files[i];
+                    if (TryParseStageKeyFromFileName(file, out int stageKey) == false)
+                        continue;
+
+                    long savedAt = -1;
+                    if (TryReadSavedAtUnixMs(file, out long readSavedAt))
+                        savedAt = readSavedAt;
+
+                    if (savedAt < 0)
+                    {
+                        if (bestSavedAt < 0 && stageKey > bestStageKey)
+                            bestStageKey = stageKey;
+                        continue;
+                    }
+
+                    if (savedAt > bestSavedAt)
+                    {
+                        bestSavedAt = savedAt;
+                        bestStageKey = stageKey;
+                    }
+                }
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[GameProgressSaver] 저장 실패: {folderPath} ({e.GetType().Name}) {e.Message}");
+                Debug.LogWarning($"[GameProgressSaver] 폴더 스캔 실패: {folderPath} ({e.GetType().Name}) {e.Message}");
+            }
+        }
+
+        static bool TryParseStageKeyFromFileName(string fullPath, out int stageKey)
+        {
+            stageKey = 0;
+            if (string.IsNullOrEmpty(fullPath))
+                return false;
+
+            string fileName = Path.GetFileNameWithoutExtension(fullPath);
+            if (fileName == null)
+                return false;
+
+            if (fileName.StartsWith(StageFilePrefix) == false)
+                return false;
+
+            string numStr = fileName.Substring(StageFilePrefix.Length);
+            if (int.TryParse(numStr, out int parsed) == false)
+                return false;
+
+            if (parsed <= 0)
+                return false;
+
+            stageKey = parsed;
+            return true;
+        }
+
+        static bool TryReadSavedAtUnixMs(string fullPath, out long savedAtUnixMs)
+        {
+            savedAtUnixMs = 0;
+            try
+            {
+                if (File.Exists(fullPath) == false)
+                    return false;
+
+                string json = File.ReadAllText(fullPath);
+                if (string.IsNullOrEmpty(json))
+                    return false;
+
+                var data = JsonUtility.FromJson<GameProgressData>(json);
+                if (data == null)
+                    return false;
+
+                savedAtUnixMs = data.SavedAtUnixMs;
+                return savedAtUnixMs > 0;
+            }
+            catch
+            {
+                savedAtUnixMs = 0;
                 return false;
             }
         }
 
-        static void TryDelete(string folderPath, string fileName)
+        static bool SaveToJsonDataFolder(GameProgressData data, string fileName)
         {
-            try
-            {
-                var fullPath = Path.Combine(folderPath, fileName);
-                if (File.Exists(fullPath))
-                    File.Delete(fullPath);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[GameProgressSaver] 삭제 실패: {folderPath}/{fileName} ({e.GetType().Name}) {e.Message}");
-            }
+            string json = JsonUtility.ToJson(data, true);
+            return Helper.TryWriteTextToJsonData(fileName, json, "GameProgressSaver");
+        }
+
+        static bool TryReadFromJsonDataFolder(string fileName, out string json)
+        {
+            return Helper.TryReadTextFromJsonData(fileName, out json);
         }
     }
 }

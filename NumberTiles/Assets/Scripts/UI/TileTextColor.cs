@@ -13,10 +13,9 @@ namespace NTGame
 
     public class TileTextColor : MonoBehaviour
     {
-        [Header("Text Colors")]
         public List<TextColorData> ColorDataList = new List<TextColorData>();
 
-        readonly Dictionary<int, Color> _textColorDict = new Dictionary<int, Color>(16);
+        Dictionary<int, Color> _textColorDict = new Dictionary<int, Color>(16);
 
         public bool TryGetTextColor(int key, out Color color)
         {

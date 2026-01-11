@@ -4,16 +4,16 @@ namespace NTGame
 {
     public class TileItemFactory : IItemFactory
     {
-        readonly Dictionary<ItemType, ITileItem> _cache = new Dictionary<ItemType, ITileItem>(8);
+        Dictionary<ItemType, ITileItem> _dict = new Dictionary<ItemType, ITileItem>(8);
 
         public ITileItem Create(ItemType itemType)
         {
-            if (_cache.TryGetValue(itemType, out var item))
+            if (_dict.TryGetValue(itemType, out var item))
                 return item;
 
+            // 무조건 1대1 매칭인데, 추후 안정성 높이기 
             item = CreateInternal(itemType);
-            if (item != null)
-                _cache[itemType] = item;
+            _dict[itemType] = item;
 
             return item;
         }

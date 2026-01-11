@@ -21,7 +21,7 @@ MonoBehaviour:
     - StartCol: 0
       EndCol: 8
   - StageKey: 2
-    InitialSpawnTileCount: 35
+    InitialSpawnTileCount: 39
     _activeRanges:
     - StartCol: 1
       EndCol: 8

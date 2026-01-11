@@ -13,10 +13,7 @@ namespace NTGame
         [Serializable]
         public struct RowRange : IEquatable<RowRange>
         {
-            [Tooltip("활성 구간 시작, -1이면 전부 비활성.")]
             public int StartCol;
-
-            [Tooltip("활성 구간 끝 Col, -1이면 이 행은 전부 비활성.")]
             public int EndCol;
 
             public RowRange(int startCol, int endCol)
@@ -47,12 +44,11 @@ namespace NTGame
             [Min(1)]
             public int StageKey = 1;
 
-            [Header("Board (Initial Spawn)")]
             [Tooltip("초기 보드에 채울 '타일(숫자)' 개수.\n- ActiveRanges를 따라 row-major로 채웁니다.\n- Rows는 이 값에 맞춰 자동 계산됩니다.")]
             [Min(14)]
             public int InitialSpawnTileCount = 9;
 
-            [Header("Shape Ranges")]
+            [Tooltip("0 ~ 8번 Index 까지, Tile 의 Number 할당이 가능한지 불가능한지 Row 별 정의 의미")]
             [SerializeField]
             private List<RowRange> _activeRanges = new List<RowRange>();
 

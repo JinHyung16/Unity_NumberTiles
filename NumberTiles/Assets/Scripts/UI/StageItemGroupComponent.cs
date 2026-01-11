@@ -11,8 +11,6 @@ namespace NTGame
         {
             void OnClickUseItem(ItemType itemType);
         }
-
-        [Header("UI")]
         public TextMeshProUGUI AddTilesCountTxt;
         public TextMeshProUGUI BreakOneTileCountTxt;
 

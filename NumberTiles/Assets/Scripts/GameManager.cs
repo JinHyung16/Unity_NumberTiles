@@ -1,7 +1,9 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace NTGame
 {
+    // 추후 UI 는 UIManager로 나눠서 Load/Release 관리
     public class GameManager 
         : SceneSingleton<GameManager>
         , ITileObserver
@@ -12,15 +14,12 @@ namespace NTGame
         public StageData StageData;
         public Camera UICamera;
 
-        [Header("UI Root")]
+        [Header("Base Window 모음")]
         public LobbyWindow LobbyWindow;
         public TileWindow TileWindow;
         public GameResultWindow ResultWindow;
 
-        [Header("Stage")]
-        public int StartStageKey = 1;
         int _curStageKey = 1;
-
         bool _ignoreResultCheck;
         bool _isPlaying;
 
@@ -31,7 +30,20 @@ namespace NTGame
 
         void Start()
         {
-            _curStageKey = Mathf.Max(1, StartStageKey);
+            Debug.Assert(StageData != null, "Stage Data 연결이 필요합니다");
+            GameMetaSaver.EnsureCreated();
+
+            var startStageKey = 0;
+
+            if (GameProgressSaver.TryFindMostRecentStageKey(out int progressStageKey))
+                startStageKey = Mathf.Max(1, progressStageKey);
+            else
+                startStageKey = GameMetaSaver.GetNextStageAfterClearOrDefault(startStageKey);
+
+            if (StageData.TryGetStage(startStageKey, out _))
+                _curStageKey = startStageKey;
+
+            _curStageKey = Mathf.Max(1, _curStageKey);
 
             LobbyWindow.Open(_curStageKey, this);
             TileWindow.Close();
@@ -40,19 +52,14 @@ namespace NTGame
 
         void StartGame(int stageKey)
         {
-            if (StageData == null)
-            {
-                Debug.LogError("[GameManager] StageData가 연결되어야 합니다.");
-                return;
-            }
-
             _curStageKey = Mathf.Max(1, stageKey);
-
-            LobbyWindow.Close();
-            ResultWindow.Close();
+            GameMetaSaver.UpdateLastStage(_curStageKey);
 
             var tileManager = TileManager.Instance;
             tileManager.ClearObservers();
+
+            LobbyWindow.Close();
+            ResultWindow.Close();
 
             PoolManager.Instance.InitPool();
 
@@ -82,9 +89,6 @@ namespace NTGame
             if (_ignoreResultCheck)
                 return;
 
-            if (ResultWindow != null && ResultWindow.gameObject.activeSelf)
-                return;
-
             var tileManager = TileManager.Instance;
             if (tileManager.IsClearStage())
             {
@@ -105,6 +109,8 @@ namespace NTGame
             _ignoreResultCheck = true;
 
             GameProgressSaver.Delete(_curStageKey);
+            if (gameResultType == GameResultType.ClearStage)
+                GameMetaSaver.UpdateClearedStage(_curStageKey);
 
             var tileManager = TileManager.Instance;
             tileManager.RemoveObserver(this);
@@ -157,6 +163,22 @@ namespace NTGame
         {
             GameProgressSaver.Delete(_curStageKey);
             StartGame(_curStageKey);
+        }
+
+        void LobbyWindow.IListener.ClearGameData()
+        {
+            TileManager.Instance.ClearObservers();
+            _isPlaying = false;
+            _ignoreResultCheck = true;
+
+            GameProgressSaver.DeleteAll();
+            GameMetaSaver.Reset();
+
+            TileWindow.Close();
+            ResultWindow.Close();
+
+            var activeScene = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(activeScene.buildIndex);
         }
 
         void TileWindow.IListener.ExitGame()

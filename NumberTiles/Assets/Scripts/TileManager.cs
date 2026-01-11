@@ -8,21 +8,22 @@ namespace NTGame
     {
         const int AddTilesSpawnPerBatch = 20;
 
-        readonly List<ITileObserver> _observerList = new List<ITileObserver>(8);
+        List<ITileObserver> _observerList = new List<ITileObserver>(8);
 
-        readonly bool[] _digitSeen = new bool[10];
-        readonly bool[] _digitCleared = new bool[10];
-        readonly int[] _digitCount = new int[10];
+        bool[] _digitSeen = new bool[10];
+        bool[] _digitCleared = new bool[10];
+        int[] _digitCount = new int[10];
 
-        readonly Dictionary<ItemType, int> _itemCountDict = new Dictionary<ItemType, int>(8);
-        readonly List<int> _addTilesQueue = new List<int>(16);
-        readonly TileItemFactory _itemFactory = new TileItemFactory();
+        Dictionary<ItemType, int> _itemCountDict = new Dictionary<ItemType, int>(8);
+        List<int> _addTilesQueue = new List<int>(16);
+        TileItemFactory _itemFactory = new TileItemFactory();
 
         public int Cols => StageData.BoardCols;
         public int Rows => _rows;
         public int CellCount => _cellCount;
 
         StageData.StageInfo _stage;
+
         int[,] _values;
         bool[,] _active;
         int _rows;
@@ -91,6 +92,8 @@ namespace NTGame
             }
 
             _rows = Mathf.Max(2, data.Rows);
+            _cellCount = data.CellCount > 0 ? data.CellCount : (_rows * Cols);
+            _cellCount = Mathf.Clamp(_cellCount, 0, _rows * Cols);
             _values = new int[Rows, Cols];
             _active = new bool[Rows, Cols];
             _rowActiveTileCount = new int[Rows];
@@ -139,7 +142,7 @@ namespace NTGame
                 }
             }
 
-            _spawnCursorIndex = Mathf.Max(0, data.SpawnCursorIndex);
+            _spawnCursorIndex = Mathf.Clamp(data.SpawnCursorIndex, 0, _cellCount);
             _nextEmptyScanIndex = Mathf.Max(0, data.NextEmptyScanIndex);
             _pendingTargetItemType = data.PendingTargetItemType;
 
@@ -344,6 +347,13 @@ namespace NTGame
                 if (_addTilesQueue.Count == 0)
                     break;
 
+                while (_addTilesQueue.Count > 0 && IsDigitCleared(_addTilesQueue[0]))
+                {
+                    _addTilesQueue.RemoveAt(0);
+                }
+                if (_addTilesQueue.Count == 0)
+                    break;
+
                 if (TryGetNextAppendCell(out int r, out int c) == false)
                     break;
 
@@ -376,14 +386,12 @@ namespace NTGame
                     Notify(TileNotify.CellCountChanged(_cellCount, Rows, Cols));
                 }
 
-                // Shape(ActiveRanges) 밖이면 스킵
                 if (IsInStageShape(r, c) == false)
                     continue;
 
                 if (_values[r, c] != 0)
                     continue;
 
-                // 아직 닫힌 칸이면 열어준다 (BG -> Open 상태)
                 if (_active[r, c] == false)
                 {
                     _active[r, c] = true;
@@ -442,7 +450,6 @@ namespace NTGame
 
             Array.Resize(ref _rowActiveTileCount, newRows);
 
-            // UI 재생성(스크롤이라 아래로 늘어나면 자연스럽게 확장됨)
             ClearSelection();
             Notify(TileNotify.BoardInit(Rows, Cols));
             Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
@@ -843,7 +850,13 @@ namespace NTGame
             Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
 
             _itemCountDict[ItemType.BreakOneTile] = Mathf.Max(0, GetItemCount(ItemType.BreakOneTile) - 1);
-            Notify(new TileNotify { Type = TileNotifyType.ItemCountChanged, ItemType = ItemType.BreakOneTile, ItemCount = GetItemCount(ItemType.BreakOneTile) });
+
+            Notify(new TileNotify
+            {
+                Type = TileNotifyType.ItemCountChanged,
+                ItemType = ItemType.BreakOneTile,
+                ItemCount = GetItemCount(ItemType.BreakOneTile)
+            });
         }
 
         void AddDigitCount(int row, int value)
@@ -871,16 +884,50 @@ namespace NTGame
                 _rowActiveTileCount[row] = Mathf.Max(0, _rowActiveTileCount[row] - 1);
 
             if (_digitCleared[value] == false && _digitSeen[value] && _digitCount[value] == 0)
+            {
                 _digitCleared[value] = true;
+                RemoveClearedDigitsFromAddTilesQueue();
+                Notify(new TileNotify
+                {
+                    Type = TileNotifyType.DigitCleared,
+                    Value = value
+                });
+            }
         }
 
         void CollapseEmptyRows_RemoveRow()
         {
             bool changed = false;
+            int removedRowCount = 0;
+            int removedCellCount = 0;
+            int curCellCount = _cellCount;
             for (int r = 0; r < Rows; r++)
             {
                 if (IsRowEmpty(r) == false)
                     continue;
+
+                // row 삭제 시 cellCount 감소량 계산
+                // 마지막 줄이 부분 줄이면(Count % Cols) 그 만큼만 감소해야 한다.
+                if (curCellCount > 0)
+                {
+                    int lastRowIndex = (curCellCount - 1) / Cols;
+                    if (r >= 0 && r <= lastRowIndex)
+                    {
+                        int removedCells;
+                        if (r == lastRowIndex)
+                        {
+                            removedCells = curCellCount - (lastRowIndex * Cols);
+                            removedCells = Mathf.Clamp(removedCells, 0, Cols);
+                        }
+                        else
+                        {
+                            removedCells = Cols;
+                        }
+
+                        curCellCount = Mathf.Max(0, curCellCount - removedCells);
+                        removedCellCount += removedCells;
+                    }
+                }
 
                 for (int rr = r; rr < Rows - 1; rr++)
                 {
@@ -896,12 +943,19 @@ namespace NTGame
 
                 _rows--;
                 changed = true;
+                removedRowCount++;
 
                 r--;
             }
 
             if (changed == false)
                 return;
+
+            if (removedRowCount > 0)
+            {
+                _cellCount = Mathf.Max(0, curCellCount);
+                _spawnCursorIndex = Mathf.Min(_spawnCursorIndex, _cellCount);
+            }
 
             if (_rowActiveTileCount != null && _rowActiveTileCount.Length != Rows)
                 Array.Resize(ref _rowActiveTileCount, Rows);
@@ -915,22 +969,58 @@ namespace NTGame
             ClearSelection();
             Notify(TileNotify.BoardInit(Rows, Cols));
             Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+
+            if (removedRowCount > 0)
+            {
+                Notify(new TileNotify
+                {
+                    Type = TileNotifyType.LineCleared,
+                    Value = removedRowCount
+                });
+            }
         }
 
         bool IsRowEmpty(int row)
         {
+            // 이 Row에 "숫자 타일이 들어갈 수 있는 셀(Shape)"이 하나도 없으면
+            // 라인 클리어 대상이 아니다.
+            if (HasAnyShapeCellInRow(row) == false)
+                return false;
+
             if (_rowActiveTileCount != null)
                 return _rowActiveTileCount[row] <= 0;
 
             for (int c = 0; c < Cols; c++)
             {
-                if (_active[row, c] == false)
+                if (IsInStageShape(row, c) == false)
                     continue;
 
                 if (_values[row, c] >= 1)
                     return false;
             }
             return true;
+        }
+
+        bool HasAnyShapeCellInRow(int row)
+        {
+            if (row < 0 || row >= Rows)
+                return false;
+
+            int baseIdx = row * Cols;
+            if (baseIdx >= _cellCount)
+                return false;
+
+            int maxCol = Mathf.Min(Cols - 1, (_cellCount - 1) - baseIdx);
+            if (maxCol < 0)
+                return false;
+
+            for (int c = 0; c <= maxCol; c++)
+            {
+                if (IsInStageShape(row, c))
+                    return true;
+            }
+
+            return false;
         }
 
         public bool IsClearStage()

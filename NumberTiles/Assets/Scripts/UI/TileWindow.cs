@@ -19,7 +19,6 @@ namespace NTGame
             void UseItem(ItemType itemType);
         }
 
-        readonly List<TileUIComponent> _tileList = new List<TileUIComponent>(256);
 
         public RectTransform CompRoot;
         public RectTransform TileLineRoot;
@@ -27,14 +26,17 @@ namespace NTGame
         
         public StageClearConditionNumberComponent ConditionComponent;
         public StageItemGroupComponent StageItemComp;
+        public TileStatusAlarmPanel StatusAlarmPanel;
 
         IListener _listener;
+        List<TileUIComponent> _tileList = new List<TileUIComponent>();
 
         public void Open(IListener listener)
         {
             OpenInternal(() =>
             {
                 _listener = listener;
+                StatusAlarmPanel.Close();
                 ConditionComponent.Open(this);
                 StageItemComp.Open(this);
                 TileManager.Instance.AddObserver(this);
@@ -52,6 +54,7 @@ namespace NTGame
             _tileList.Clear();
             ConditionComponent.Close();
             StageItemComp.Close();
+            StatusAlarmPanel.Close();
         }
 
         public Vector2 GetCellCenterScreen(int row, int col)
@@ -131,6 +134,18 @@ namespace NTGame
             if (notify.Type == TileNotifyType.MatchedPair)
             {
                 ShowMatchedLine(notify.Row, notify.Col, notify.Row2, notify.Col2);
+                return;
+            }
+
+            if (notify.Type == TileNotifyType.LineCleared)
+            {
+                StatusAlarmPanel.ShowLineClearAlarm();
+                return;
+            }
+
+            if (notify.Type == TileNotifyType.DigitCleared)
+            {
+                StatusAlarmPanel.ShowTileNumberClearAlarm(notify.Value);
                 return;
             }
 

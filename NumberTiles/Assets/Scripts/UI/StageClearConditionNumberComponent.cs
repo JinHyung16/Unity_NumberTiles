@@ -15,9 +15,7 @@ namespace NTGame
         public Color ActiveColor = new Color(1f, 1f, 1f, 0.9f);
         public Color ClearedColor = new Color(1f, 1f, 1f, 0.15f);
 
-        [Header("UI References (Inspector)")]
         public TextMeshProUGUI TitleTxt;
-        [Tooltip("Index 0은 미사용. 1~9를 채워주세요.")]
         public TextMeshProUGUI[] NumberArray;
 
         IListener _listener;
@@ -47,15 +45,20 @@ namespace NTGame
             var length = NumberArray.Length;
             for (int i = 0; i < length; i++)
             {
-                bool cleared = tileManager.IsDigitCleared(i);
                 var label = NumberArray[i];
+                if (label == null)
+                    continue;
+
+                int digit = i + 1;
+                bool cleared = tileManager.IsDigitCleared(digit);
                 label.color = cleared ? ClearedColor : ActiveColor;
             }
         }
 
         void ITileObserver.OnNotify(TileNotify notify)
         {
-            if (notify.Type == TileNotifyType.BoardChanged)
+            if (notify.Type == TileNotifyType.BoardChanged ||
+                notify.Type == TileNotifyType.DigitCleared)
             {
                 Refresh();
             }

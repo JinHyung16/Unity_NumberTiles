@@ -13,7 +13,7 @@ namespace NTGame
             return new TileItemOutput
             {
                 Success = armed,
-                ConsumeOnExecute = false, // 실제 소비(카운트 차감)는 타일을 클릭해서 "부쉈을 때" 처리
+                ConsumeOnExecute = false,
                 SpawnedCount = 0,
                 Affected = default
             };

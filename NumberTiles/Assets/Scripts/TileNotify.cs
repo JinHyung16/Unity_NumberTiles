@@ -10,6 +10,8 @@ namespace NTGame
         MatchedPair = 5,
         BoardChanged = 6,
         CellCountChanged = 7,
+        LineCleared = 8,
+        DigitCleared = 9,
 
         ItemCountChanged = 100
     }
@@ -38,15 +40,14 @@ namespace NTGame
             };
         }
 
-        // Value: cellCount, Row: rows, Col: cols
-        public static TileNotify CellCountChanged(int cellCount, int rows, int cols)
+        public static TileNotify CellCountChanged(int tileCount, int rows, int cols)
         {
             return new TileNotify
             {
                 Type = TileNotifyType.CellCountChanged,
                 Row = rows,
                 Col = cols,
-                Value = cellCount
+                Value = tileCount
             };
         }
     }

@@ -13,10 +13,6 @@ namespace NTGame
                 if (_instance != null)
                     return _instance;
 
-                _instance = FindExistingInstance();
-                if (_instance != null)
-                    return _instance;
-
                 var go = new GameObject(typeof(T).Name);
                 _instance = go.AddComponent<T>();
                 return _instance;
@@ -35,14 +31,6 @@ namespace NTGame
                 return;
 
             Destroy(gameObject);
-        }
-
-        static T FindExistingInstance()
-        {
-            var found = Object.FindObjectsOfType<T>(true);
-            if (found == null || found.Length == 0)
-                return null;
-            return found[0];
         }
     }
 }
