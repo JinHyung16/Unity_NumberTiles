@@ -7,15 +7,20 @@ namespace NTGame
     public class TileManager : SceneSingleton<TileManager>
     {
         const int AddTilesSpawnPerBatch = 20;
+        const int MaxDigit = 10;
+        const int DigitArraySize = MaxDigit + 1;
+        const int GuardLoopMax = 100000;
+        const int InitialItemCount = 3;
 
         List<ITileObserver> _observerList = new List<ITileObserver>(8);
 
-        bool[] _digitSeen = new bool[10];
-        bool[] _digitCleared = new bool[10];
-        int[] _digitCount = new int[10];
+        bool[] _digitSeen = new bool[DigitArraySize];
+        bool[] _digitCleared = new bool[DigitArraySize];
+        int[] _digitCount = new int[DigitArraySize];
+        int[] _digitCandidates = new int[MaxDigit];
 
         Dictionary<ItemType, int> _itemCountDict = new Dictionary<ItemType, int>(8);
-        List<int> _addTilesQueue = new List<int>(16);
+        Queue<int> _addTilesQueue = new Queue<int>(AddTilesSpawnPerBatch);
         TileItemFactory _itemFactory = new TileItemFactory();
 
         public int Cols => StageData.BoardCols;
@@ -70,10 +75,14 @@ namespace NTGame
         public bool TryApplyProgress(StageData stageData, int stageKey, GameProgressData data)
         {
             if (stageData == null || data == null)
+            {
                 return false;
+            }
 
             if (data.Cols != StageData.BoardCols)
+            {
                 return false;
+            }
 
             stageData.TryGetStage(stageKey, out var stage);
             _stage = stage;
@@ -81,14 +90,20 @@ namespace NTGame
             if (_stage != null)
             {
                 if (data.StageInitialSpawnCount <= 0)
+                {
                     return false;
+                }
 
                 if (data.StageInitialSpawnCount != _stage.InitialSpawnTileCount)
+                {
                     return false;
+                }
 
                 int shapeHash = CalcStageShapeHash(_stage);
                 if (data.StageShapeHash != shapeHash)
+                {
                     return false;
+                }
             }
 
             _rows = Mathf.Max(2, data.Rows);
@@ -98,16 +113,19 @@ namespace NTGame
             _active = new bool[Rows, Cols];
             _rowActiveTileCount = new int[Rows];
 
-            Array.Clear(_digitSeen, 0, _digitSeen.Length);
-            Array.Clear(_digitCleared, 0, _digitCleared.Length);
-            Array.Clear(_digitCount, 0, _digitCount.Length);
+            ClearDigitArrays();
 
             int total = Rows * Cols;
             if (data.Values == null || data.Active == null)
+            {
                 return false;
+            }
+
             if (data.Values.Length < total || data.Active.Length < total)
+            {
                 return false;
-            
+            }
+
             for (int r = 0; r < Rows; r++)
             {
                 for (int c = 0; c < Cols; c++)
@@ -120,17 +138,26 @@ namespace NTGame
                     _values[r, c] = isActive ? value : 0;
 
                     if (isActive && value > 0)
+                    {
                         AddDigitCount(r, value);
+                    }
                 }
             }
 
-            // digit 상태는 파일이 정상일 때만 반영 (없으면 현재 보드 기반 값 유지)
-            if (data.DigitSeen != null && data.DigitSeen.Length >= 10)
-                Array.Copy(data.DigitSeen, _digitSeen, 10);
-            if (data.DigitCleared != null && data.DigitCleared.Length >= 10)
-                Array.Copy(data.DigitCleared, _digitCleared, 10);
-            if (data.DigitCount != null && data.DigitCount.Length >= 10)
-                Array.Copy(data.DigitCount, _digitCount, 10);
+            if (data.DigitSeen != null && data.DigitSeen.Length >= DigitArraySize)
+            {
+                Array.Copy(data.DigitSeen, _digitSeen, DigitArraySize);
+            }
+
+            if (data.DigitCleared != null && data.DigitCleared.Length >= DigitArraySize)
+            {
+                Array.Copy(data.DigitCleared, _digitCleared, DigitArraySize);
+            }
+
+            if (data.DigitCount != null && data.DigitCount.Length >= DigitArraySize)
+            {
+                Array.Copy(data.DigitCount, _digitCount, DigitArraySize);
+            }
 
             _itemCountDict.Clear();
             if (data.ItemCounts != null)
@@ -149,15 +176,16 @@ namespace NTGame
             _hasFirst = false;
             _first = default;
 
-            Notify(TileNotify.BoardInit(Rows, Cols));
-            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+            NotifyBoardInitAndChanged();
             return true;
         }
 
         static int CalcStageShapeHash(StageData.StageInfo stage)
         {
             if (stage == null || stage.ActiveRanges == null)
+            {
                 return 0;
+            }
 
             int hash = 17;
             var ranges = stage.ActiveRanges;
@@ -177,7 +205,10 @@ namespace NTGame
         public int GetItemCount(ItemType itemType)
         {
             if (_itemCountDict.TryGetValue(itemType, out var count))
+            {
                 return count;
+            }
+
             return 0;
         }
 
@@ -189,7 +220,9 @@ namespace NTGame
         public void AddObserver(ITileObserver observer)
         {
             if (_observerList.Contains(observer))
+            {
                 return;
+            }
 
             _observerList.Add(observer);
         }
@@ -205,16 +238,33 @@ namespace NTGame
             {
                 var obs = _observerList[i];
                 if (obs == null)
+                {
                     continue;
+                }
 
                 obs.OnNotify(notify);
             }
         }
 
+        void NotifyBoardInitAndChanged()
+        {
+            Notify(TileNotify.BoardInit(Rows, Cols));
+            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+        }
+
+        void ClearDigitArrays()
+        {
+            Array.Clear(_digitSeen, 0, _digitSeen.Length);
+            Array.Clear(_digitCleared, 0, _digitCleared.Length);
+            Array.Clear(_digitCount, 0, _digitCount.Length);
+        }
+
         public void StartStage(StageData stageData, int stageKey)
         {
             if (stageData == null)
+            {
                 return;
+            }
 
             stageData.TryGetStage(stageKey, out var stage);
             StartStage(stage);
@@ -239,18 +289,13 @@ namespace NTGame
             _spawnCursorIndex = _cellCount;
             _pendingTargetItemType = ItemType.None;
 
-            Array.Clear(_digitSeen, 0, _digitSeen.Length);
-            Array.Clear(_digitCleared, 0, _digitCleared.Length);
-            Array.Clear(_digitCount, 0, _digitCount.Length);
-
+            ClearDigitArrays();
             ResetItemState();
 
             _hasFirst = false;
 
             ApplyInitialSpawnCount(_cellCount);
-
-            Notify(TileNotify.BoardInit(Rows, Cols));
-            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+            NotifyBoardInitAndChanged();
         }
 
         void ApplyInitialSpawnCount(int spawnCount)
@@ -265,31 +310,31 @@ namespace NTGame
             _active = new bool[Rows, Cols];
             _rowActiveTileCount = new int[Rows];
 
-            if (_rowActiveTileCount != null)
-            {
-                Array.Clear(_rowActiveTileCount, 0, _rowActiveTileCount.Length);
-            }
-
             bool hasRanges = _stage != null &&
                              _stage.ActiveRanges != null &&
                              _stage.ActiveRanges.Count > 0;
 
             if (hasRanges == false)
+            {
                 return;
+            }
 
-            // Count만큼 셀을 생성하고, ActiveRanges 안의 셀만 숫자 타일로 채운다.
             int cols = Cols;
             for (int idx = 0; idx < _cellCount; idx++)
             {
                 int r = idx / cols;
                 int c = idx % cols;
                 if (r < 0 || r >= Rows)
+                {
                     break;
+                }
 
                 if (IsInStageShape(r, c) == false)
+                {
                     continue;
+                }
 
-                int value = UnityEngine.Random.Range(1, 10);
+                int value = UnityEngine.Random.Range(1, DigitArraySize);
                 _active[r, c] = true;
                 _values[r, c] = value;
                 AddDigitCount(r, value);
@@ -308,18 +353,26 @@ namespace NTGame
         public bool UseItem(ItemType itemType)
         {
             if (itemType == ItemType.None)
+            {
                 return false;
+            }
 
             if (GetItemCount(itemType) <= 0)
+            {
                 return false;
+            }
 
             var item = _itemFactory.Create(itemType);
             if (item == null)
+            {
                 return false;
+            }
 
             var output = item.Execute(new TileItemInput { TileManager = this });
             if (output is TileItemOutput outData == false || outData.Success == false)
+            {
                 return false;
+            }
 
             if (outData.ConsumeOnExecute)
             {
@@ -345,20 +398,26 @@ namespace NTGame
             for (int i = 0; i < toSpawn; i++)
             {
                 if (_addTilesQueue.Count == 0)
-                    break;
-
-                while (_addTilesQueue.Count > 0 && IsDigitCleared(_addTilesQueue[0]))
                 {
-                    _addTilesQueue.RemoveAt(0);
-                }
-                if (_addTilesQueue.Count == 0)
                     break;
+                }
+
+                while (_addTilesQueue.Count > 0 && IsDigitCleared(_addTilesQueue.Peek()))
+                {
+                    _addTilesQueue.Dequeue();
+                }
+
+                if (_addTilesQueue.Count == 0)
+                {
+                    break;
+                }
 
                 if (TryGetNextAppendCell(out int r, out int c) == false)
+                {
                     break;
+                }
 
-                int value = _addTilesQueue[0];
-                _addTilesQueue.RemoveAt(0);
+                int value = _addTilesQueue.Dequeue();
                 SpawnValueAt(r, c, value);
                 spawned++;
             }
@@ -370,7 +429,7 @@ namespace NTGame
         bool TryGetNextAppendCell(out int row, out int col)
         {
             int guard = 0;
-            while (guard++ < 100000)
+            while (guard++ < GuardLoopMax)
             {
                 EnsureRowsForIndex(_spawnCursorIndex);
 
@@ -387,10 +446,14 @@ namespace NTGame
                 }
 
                 if (IsInStageShape(r, c) == false)
+                {
                     continue;
+                }
 
                 if (_values[r, c] != 0)
+                {
                     continue;
+                }
 
                 if (_active[r, c] == false)
                 {
@@ -418,7 +481,9 @@ namespace NTGame
         {
             int needRows = (index / Cols) + 1;
             if (needRows <= Rows)
+            {
                 return;
+            }
 
             int oldRows = Rows;
             int newRows = needRows;
@@ -435,15 +500,6 @@ namespace NTGame
                 }
             }
 
-            for (int r = oldRows; r < newRows; r++)
-            {
-                for (int c = 0; c < Cols; c++)
-                {
-                    newValues[r, c] = 0;
-                    newActive[r, c] = false;
-                }
-            }
-
             _rows = newRows;
             _values = newValues;
             _active = newActive;
@@ -451,17 +507,20 @@ namespace NTGame
             Array.Resize(ref _rowActiveTileCount, newRows);
 
             ClearSelection();
-            Notify(TileNotify.BoardInit(Rows, Cols));
-            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+            NotifyBoardInitAndChanged();
         }
 
         bool IsInStageShape(int row, int col)
         {
             if (_stage == null || _stage.ActiveRanges == null || _stage.ActiveRanges.Count <= 0)
+            {
                 return false;
+            }
 
             if (col < 0 || col >= Cols)
+            {
                 return false;
+            }
 
             if (row < 0)
                 return false;
@@ -470,12 +529,12 @@ namespace NTGame
             int s = rr.StartCol;
             int e = rr.EndCol;
             if (s < 0 || e < 0)
+            {
                 return false;
+            }
 
             return col >= s && col <= e;
         }
-
-        // BreakOneTile는 "아이템 사용 후 유저가 타일을 클릭"하는 타겟팅 방식으로 처리한다.
 
         public bool IsActiveCell(int row, int col)
         {
@@ -499,22 +558,25 @@ namespace NTGame
 
         public bool IsDigitCleared(int digit)
         {
-            if (digit < 1 || digit > 9)
+            if (digit < 1 || digit > MaxDigit)
+            {
                 return false;
+            }
 
             return _digitCleared[digit];
         }
 
         public bool TryGetRandomSpawnDigit(out int digit)
         {
-            int[] candidates = new int[9];
             int count = 0;
-            for (int d = 1; d <= 9; d++)
+            for (int d = 1; d <= MaxDigit; d++)
             {
                 if (_digitCleared[d])
+                {
                     continue;
+                }
 
-                candidates[count++] = d;
+                _digitCandidates[count++] = d;
             }
 
             if (count <= 0)
@@ -523,15 +585,15 @@ namespace NTGame
                 return false;
             }
 
-            digit = candidates[UnityEngine.Random.Range(0, count)];
+            digit = _digitCandidates[UnityEngine.Random.Range(0, count)];
             return true;
         }
 
         void ResetItemState()
         {
             _itemCountDict.Clear();
-            _itemCountDict[ItemType.AddTiles] = 3;
-            _itemCountDict[ItemType.BreakOneTile] = 3;
+            _itemCountDict[ItemType.AddTiles] = InitialItemCount;
+            _itemCountDict[ItemType.BreakOneTile] = InitialItemCount;
 
             _addTilesQueue.Clear();
             EnsureAddTilesQueueFilled();
@@ -539,23 +601,29 @@ namespace NTGame
 
         void EnsureAddTilesQueueFilled()
         {
-            int need = Mathf.Max(0, AddTilesSpawnPerBatch);
-            while (_addTilesQueue.Count < need)
+            while (_addTilesQueue.Count < AddTilesSpawnPerBatch)
             {
                 if (TryGetRandomSpawnDigit(out int digit))
-                    _addTilesQueue.Add(digit);
+                {
+                    _addTilesQueue.Enqueue(digit);
+                }
                 else
-                    _addTilesQueue.Add(1);
+                {
+                    _addTilesQueue.Enqueue(1);
+                }
             }
         }
 
         void RemoveClearedDigitsFromAddTilesQueue()
         {
-            for (int i = _addTilesQueue.Count - 1; i >= 0; i--)
+            int count = _addTilesQueue.Count;
+            for (int i = 0; i < count; i++)
             {
-                int d = _addTilesQueue[i];
-                if (IsDigitCleared(d))
-                    _addTilesQueue.RemoveAt(i);
+                int d = _addTilesQueue.Dequeue();
+                if (IsDigitCleared(d) == false)
+                {
+                    _addTilesQueue.Enqueue(d);
+                }
             }
         }
 
@@ -588,7 +656,9 @@ namespace NTGame
             }
 
             if (HasTile(row, col) == false)
+            {
                 return;
+            }
 
             if (_hasFirst == false)
             {
@@ -686,7 +756,9 @@ namespace NTGame
 
             int start = _nextEmptyScanIndex;
             if (start < 0 || start >= total)
+            {
                 start = 0;
+            }
 
             for (int i = 0; i < total; i++)
             {
@@ -695,16 +767,21 @@ namespace NTGame
                 int c = idx % Cols;
 
                 if (_active[r, c] == false)
+                {
                     continue;
+                }
 
                 if (_values[r, c] != 0)
+                {
                     continue;
+                }
 
                 _nextEmptyScanIndex = (idx + 1) % total;
                 row = r;
                 col = c;
                 return true;
             }
+
             row = -1;
             col = -1;
             return false;
@@ -713,7 +790,9 @@ namespace NTGame
         public void SpawnValueAt(int row, int col, int value)
         {
             if (IsEmptyActive(row, col) == false)
+            {
                 return;
+            }
 
             _values[row, col] = value;
             AddDigitCount(row, value);
@@ -730,32 +809,43 @@ namespace NTGame
         public bool CanRemove(TileCoordStruct a, TileCoordStruct b)
         {
             if (HasTile(a.Row, a.Col) == false || HasTile(b.Row, b.Col) == false)
+            {
                 return false;
+            }
 
             int av = _values[a.Row, a.Col];
             int bv = _values[b.Row, b.Col];
 
             if (!((av == bv) || (av + bv == 10)))
+            {
                 return false;
+            }
 
             int dr = b.Row - a.Row;
             int dc = b.Col - a.Col;
 
             if (dr == 0)
+            {
                 return IsBlockedOnRow(a, b) == false;
+            }
 
             if (dc == 0)
+            {
                 return IsBlockedOnCol(a, b) == false;
+            }
 
+            // 대각선: |행차| == |열차| (1칸 인접 또는 빈셀 건너뜀)
             if (Math.Abs(dr) == Math.Abs(dc))
             {
                 if (Math.Abs(dr) == 1)
+                {
                     return true;
+                }
 
                 return IsBlockedOnDiagonal(a, b) == false;
             }
 
-
+            // 줄 연결: 한 줄 끝 → 다음 줄 처음, 빈셀 경유 허용
             return IsBlockedOnFlatRowMajor(a, b) == false;
         }
 
@@ -767,7 +857,9 @@ namespace NTGame
             for (int c = min + 1; c <= max - 1; c++)
             {
                 if (HasTile(row, c))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -781,7 +873,9 @@ namespace NTGame
             for (int r = min + 1; r <= max - 1; r++)
             {
                 if (HasTile(r, col))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -799,8 +893,11 @@ namespace NTGame
                 int r = idx / Cols;
                 int c = idx % Cols;
                 if (HasTile(r, c))
+                {
                     return true;
+                }
             }
+
             return false;
         }
 
@@ -818,7 +915,9 @@ namespace NTGame
                 int r = a.Row + (stepR * i);
                 int c = a.Col + (stepC * i);
                 if (HasTile(r, c))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -827,7 +926,9 @@ namespace NTGame
         void RemoveTile(int row, int col)
         {
             if (HasTile(row, col) == false)
+            {
                 return;
+            }
 
             int prev = _values[row, col];
             _values[row, col] = -prev;
@@ -861,27 +962,29 @@ namespace NTGame
 
         void AddDigitCount(int row, int value)
         {
-            if (value < 1 || value > 9)
+            if (value < 1 || value > MaxDigit)
+            {
                 return;
+            }
 
             _digitSeen[value] = true;
             _digitCount[value]++;
-
-            if (_rowActiveTileCount != null && row >= 0 && row < _rowActiveTileCount.Length)
-                _rowActiveTileCount[row]++;
+            _rowActiveTileCount[row]++;
         }
 
         void RemoveDigitCount(int row, int value)
         {
-            if (value < 1 || value > 9)
+            if (value < 1 || value > MaxDigit)
+            {
                 return;
+            }
 
-            _digitSeen[value] = true;
             if (_digitCount[value] > 0)
+            {
                 _digitCount[value]--;
+            }
 
-            if (_rowActiveTileCount != null && row >= 0 && row < _rowActiveTileCount.Length)
-                _rowActiveTileCount[row] = Mathf.Max(0, _rowActiveTileCount[row] - 1);
+            _rowActiveTileCount[row] = Mathf.Max(0, _rowActiveTileCount[row] - 1);
 
             if (_digitCleared[value] == false && _digitSeen[value] && _digitCount[value] == 0)
             {
@@ -904,10 +1007,10 @@ namespace NTGame
             for (int r = 0; r < Rows; r++)
             {
                 if (IsRowEmpty(r) == false)
+                {
                     continue;
+                }
 
-                // row 삭제 시 cellCount 감소량 계산
-                // 마지막 줄이 부분 줄이면(Count % Cols) 그 만큼만 감소해야 한다.
                 if (curCellCount > 0)
                 {
                     int lastRowIndex = (curCellCount - 1) / Cols;
@@ -937,8 +1040,7 @@ namespace NTGame
                         _values[rr, c] = _values[rr + 1, c];
                     }
 
-                    if (_rowActiveTileCount != null)
-                        _rowActiveTileCount[rr] = _rowActiveTileCount[rr + 1];
+                    _rowActiveTileCount[rr] = _rowActiveTileCount[rr + 1];
                 }
 
                 _rows--;
@@ -949,7 +1051,9 @@ namespace NTGame
             }
 
             if (changed == false)
+            {
                 return;
+            }
 
             if (removedRowCount > 0)
             {
@@ -957,18 +1061,23 @@ namespace NTGame
                 _spawnCursorIndex = Mathf.Min(_spawnCursorIndex, _cellCount);
             }
 
-            if (_rowActiveTileCount != null && _rowActiveTileCount.Length != Rows)
+            if (_rowActiveTileCount.Length != Rows)
+            {
                 Array.Resize(ref _rowActiveTileCount, Rows);
+            }
 
             int total = Rows * Cols;
             if (total > 0)
+            {
                 _nextEmptyScanIndex = Mathf.Clamp(_nextEmptyScanIndex, 0, total - 1);
+            }
             else
+            {
                 _nextEmptyScanIndex = 0;
+            }
 
             ClearSelection();
-            Notify(TileNotify.BoardInit(Rows, Cols));
-            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+            NotifyBoardInitAndChanged();
 
             if (removedRowCount > 0)
             {
@@ -982,42 +1091,39 @@ namespace NTGame
 
         bool IsRowEmpty(int row)
         {
-            // 이 Row에 "숫자 타일이 들어갈 수 있는 셀(Shape)"이 하나도 없으면
-            // 라인 클리어 대상이 아니다.
             if (HasAnyShapeCellInRow(row) == false)
-                return false;
-
-            if (_rowActiveTileCount != null)
-                return _rowActiveTileCount[row] <= 0;
-
-            for (int c = 0; c < Cols; c++)
             {
-                if (IsInStageShape(row, c) == false)
-                    continue;
-
-                if (_values[row, c] >= 1)
-                    return false;
+                return false;
             }
-            return true;
+
+            return _rowActiveTileCount[row] <= 0;
         }
 
         bool HasAnyShapeCellInRow(int row)
         {
             if (row < 0 || row >= Rows)
+            {
                 return false;
+            }
 
             int baseIdx = row * Cols;
             if (baseIdx >= _cellCount)
+            {
                 return false;
+            }
 
             int maxCol = Mathf.Min(Cols - 1, (_cellCount - 1) - baseIdx);
             if (maxCol < 0)
+            {
                 return false;
+            }
 
             for (int c = 0; c <= maxCol; c++)
             {
                 if (IsInStageShape(row, c))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -1025,25 +1131,41 @@ namespace NTGame
 
         public bool IsClearStage()
         {
-            for (int d = 1; d <= 9; d++)
+            bool anySeen = false;
+            for (int d = 1; d <= MaxDigit; d++)
             {
-                if (IsDigitCleared(d) == false)
+                if (_digitSeen[d] == false)
+                {
+                    continue;
+                }
+
+                anySeen = true;
+
+                if (_digitCleared[d] == false)
+                {
                     return false;
+                }
             }
 
-            return true;
+            return anySeen;
         }
 
         public bool IsFailStage()
         {
             if (GetItemCount(ItemType.AddTiles) > 0)
+            {
                 return false;
+            }
 
             if (HasAnyTileOnBoard() == false)
+            {
                 return false;
+            }
 
             if (HasAnyRemovablePair() == true)
+            {
                 return false;
+            }
 
             return true;
         }
@@ -1055,7 +1177,9 @@ namespace NTGame
                 for (int c = 0; c < Cols; c++)
                 {
                     if (HasTile(r, c))
+                    {
                         return true;
+                    }
                 }
             }
 
@@ -1067,6 +1191,18 @@ namespace NTGame
             return (a == b) || (a + b == 10);
         }
 
+        bool CheckMatchWithCoord(TileCoordStruct a, TileCoordStruct b)
+        {
+            int av = _values[a.Row, a.Col];
+            int bv = _values[b.Row, b.Col];
+            if (IsMatchValue(av, bv) == false)
+            {
+                return false;
+            }
+
+            return CanRemove(a, b);
+        }
+
         bool HasAnyRemovablePair()
         {
             for (int r = 0; r < Rows; r++)
@@ -1074,116 +1210,89 @@ namespace NTGame
                 for (int c = 0; c < Cols; c++)
                 {
                     if (HasTile(r, c) == false)
+                    {
                         continue;
+                    }
 
                     var a = new TileCoordStruct { Row = r, Col = c };
-                    int av = _values[r, c];
 
-                    // row (left/right)
                     if (TryFindFirstTileOnRow(r, c, -1, out int leftCol))
                     {
-                        int bv = _values[r, leftCol];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, new TileCoordStruct { Row = r, Col = leftCol }))
                         {
-                            var b = new TileCoordStruct { Row = r, Col = leftCol };
-                            if (CanRemove(a, b))
-                                return true;
+                            return true;
                         }
                     }
 
                     if (TryFindFirstTileOnRow(r, c, 1, out int rightCol))
                     {
-                        int bv = _values[r, rightCol];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, new TileCoordStruct { Row = r, Col = rightCol }))
                         {
-                            var b = new TileCoordStruct { Row = r, Col = rightCol };
-                            if (CanRemove(a, b))
-                                return true;
+                            return true;
                         }
                     }
 
-                    // col (up/down)
                     if (TryFindFirstTileOnCol(r, c, -1, out int upRow))
                     {
-                        int bv = _values[upRow, c];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, new TileCoordStruct { Row = upRow, Col = c }))
                         {
-                            var b = new TileCoordStruct { Row = upRow, Col = c };
-                            if (CanRemove(a, b))
-                                return true;
+                            return true;
                         }
                     }
 
                     if (TryFindFirstTileOnCol(r, c, 1, out int downRow))
                     {
-                        int bv = _values[downRow, c];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, new TileCoordStruct { Row = downRow, Col = c }))
                         {
-                            var b = new TileCoordStruct { Row = downRow, Col = c };
-                            if (CanRemove(a, b))
-                                return true;
+                            return true;
                         }
                     }
 
-                    // diagonal (4 dirs)
                     if (TryFindFirstTileOnDiagonal(r, c, -1, -1, out var ul))
                     {
-                        int bv = _values[ul.Row, ul.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, ul))
                         {
-                            if (CanRemove(a, ul))
-                                return true;
+                            return true;
                         }
                     }
 
                     if (TryFindFirstTileOnDiagonal(r, c, -1, 1, out var ur))
                     {
-                        int bv = _values[ur.Row, ur.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, ur))
                         {
-                            if (CanRemove(a, ur))
-                                return true;
+                            return true;
                         }
                     }
 
                     if (TryFindFirstTileOnDiagonal(r, c, 1, -1, out var dl))
                     {
-                        int bv = _values[dl.Row, dl.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, dl))
                         {
-                            if (CanRemove(a, dl))
-                                return true;
+                            return true;
                         }
                     }
 
-                    if (TryFindFirstTileOnDiagonal(r, c, 1, 1, out var dr))
+                    if (TryFindFirstTileOnDiagonal(r, c, 1, 1, out var diagDr))
                     {
-                        int bv = _values[dr.Row, dr.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, diagDr))
                         {
-                            if (CanRemove(a, dr))
-                                return true;
+                            return true;
                         }
                     }
 
-                    // flat row-major (prev/next only)
                     if (TryFindFirstTileOnFlatRowMajor(r, c, -1, out var prev))
                     {
-                        int bv = _values[prev.Row, prev.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, prev))
                         {
-                            if (CanRemove(a, prev))
-                                return true;
+                            return true;
                         }
                     }
 
                     if (TryFindFirstTileOnFlatRowMajor(r, c, 1, out var next))
                     {
-                        int bv = _values[next.Row, next.Col];
-                        if (IsMatchValue(av, bv))
+                        if (CheckMatchWithCoord(a, next))
                         {
-                            if (CanRemove(a, next))
-                                return true;
+                            return true;
                         }
                     }
                 }
@@ -1297,10 +1406,12 @@ namespace NTGame
         bool InBounds(int row, int col)
         {
             if (row < 0 || row >= Rows || col < 0 || col >= Cols)
+            {
                 return false;
+            }
 
             int idx = (row * Cols) + col;
-            return idx >= 0 && idx < _cellCount;
+            return idx < _cellCount;
         }
     }
 }
