@@ -25,7 +25,7 @@ namespace NTGame
         public int NextEmptyScanIndex;
         public ItemType PendingTargetItemType;
 
-        // 1~10
+        // 1~9
         public bool[] DigitSeen;
         public bool[] DigitCleared;
         public int[] DigitCount;

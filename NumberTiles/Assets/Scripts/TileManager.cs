@@ -7,7 +7,7 @@ namespace NTGame
     public class TileManager : SceneSingleton<TileManager>
     {
         const int AddTilesSpawnPerBatch = 20;
-        const int MaxDigit = 10;
+        const int MaxDigit = 9;
         const int DigitArraySize = MaxDigit + 1;
         const int GuardLoopMax = 100000;
         const int InitialItemCount = 3;
