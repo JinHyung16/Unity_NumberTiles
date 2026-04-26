@@ -1,0 +1,16 @@
+{
+    "name": "GameData",
+    "rootNamespace": "Jinhyeong_GameData",
+    "references": [
+        "JsonParsing"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

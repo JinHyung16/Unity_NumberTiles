@@ -131,7 +131,7 @@ namespace TMPro.Examples
                         // Determine the random scale change for each character.
                         float randomScale = Random.Range(0.95f, 1.05f);
 
-                        // Open the matrix for the scale change.
+                        // Setup the matrix for the scale change.
                         matrix = Matrix4x4.TRS(Vector3.one, Quaternion.identity, Vector3.one * randomScale);
 
                         // Apply the scale change relative to the center of each character.
@@ -153,7 +153,7 @@ namespace TMPro.Examples
                         copyOfVertices[materialIndex][vertexIndex + 2] -= centerOfLine;
                         copyOfVertices[materialIndex][vertexIndex + 3] -= centerOfLine;
 
-                        // Open the matrix rotation.
+                        // Setup the matrix rotation.
                         matrix = Matrix4x4.TRS(Vector3.one, rotation, Vector3.one);
 
                         // Apply the matrix TRS to the individual characters relative to the center of the current line.

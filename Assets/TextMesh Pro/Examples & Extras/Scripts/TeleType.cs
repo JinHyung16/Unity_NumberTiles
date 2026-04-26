@@ -4,7 +4,7 @@ using System.Collections;
 
 namespace TMPro.Examples
 {
-    
+
     public class TeleType : MonoBehaviour
     {
 
@@ -24,7 +24,7 @@ namespace TMPro.Examples
             // Get Reference to TextMeshPro Component
             m_textMeshPro = GetComponent<TMP_Text>();
             m_textMeshPro.text = label01;
-            m_textMeshPro.enableWordWrapping = true;
+            m_textMeshPro.textWrappingMode = TextWrappingModes.Normal;
             m_textMeshPro.alignment = TextAlignmentOptions.Top;
 
 
@@ -35,8 +35,8 @@ namespace TMPro.Examples
             //    gameObject.transform.SetParent(canvas.transform);
             //    canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
-            //    // Set RectTrans Size
-            //    gameObject.GetComponent<RectTrans>().sizeDelta = new Vector2(500, 300);
+            //    // Set RectTransform Size
+            //    gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(500, 300);
             //    m_textMeshPro.fontSize = 48;
             //}
 

@@ -167,7 +167,7 @@ namespace NTGame
             if (row < 0 || col < 0)
                 return null;
 
-            int cols = StageData.BoardCols;
+            int cols = TileManager.BoardCols;
             int idx = (row * cols) + col;
             if (idx < 0 || idx >= _tileList.Count)
                 return null;
@@ -179,7 +179,7 @@ namespace NTGame
         {
             var poolMgr = PoolManager.Instance;
             int need = Mathf.Max(0, cellCount);
-            int cols = StageData.BoardCols;
+            int cols = TileManager.BoardCols;
 
             while (_tileList.Count < need)
             {

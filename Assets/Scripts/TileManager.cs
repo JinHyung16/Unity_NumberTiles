@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Jinhyeong_GameData;
 using UnityEngine;
 
 namespace NTGame
 {
     public class TileManager : SceneSingleton<TileManager>
     {
+        public const int BoardCols = 9;
+
         const int AddTilesSpawnPerBatch = 20;
         const int MaxDigit = 9;
         const int DigitArraySize = MaxDigit + 1;
@@ -23,11 +26,12 @@ namespace NTGame
         Queue<int> _addTilesQueue = new Queue<int>(AddTilesSpawnPerBatch);
         TileItemFactory _itemFactory = new TileItemFactory();
 
-        public int Cols => StageData.BoardCols;
+        public int Cols => BoardCols;
         public int Rows => _rows;
         public int CellCount => _cellCount;
 
-        StageData.StageInfo _stage;
+        Stage _stage;
+        List<StageLevel> _stageLevels = new List<StageLevel>(8);
 
         int[,] _values;
         bool[,] _active;
@@ -38,7 +42,7 @@ namespace NTGame
         int _spawnCursorIndex;
         ItemType _pendingTargetItemType = ItemType.None;
 
-        public int CurrentStageKey => _stage != null ? _stage.StageKey : 0;
+        public int CurrentStageKey => _stage != null ? _stage.Id : 0;
 
         public void FillProgressExtra(GameProgressData data)
         {
@@ -48,8 +52,8 @@ namespace NTGame
 
             if (_stage != null)
             {
-                data.StageInitialSpawnCount = _stage.InitialSpawnTileCount;
-                data.StageShapeHash = CalcStageShapeHash(_stage);
+                data.StageInitialSpawnCount = _stage.SpawnTileCount;
+                data.StageShapeHash = CalcStageShapeHash();
             }
             else
             {
@@ -72,20 +76,19 @@ namespace NTGame
             }
         }
 
-        public bool TryApplyProgress(StageData stageData, int stageKey, GameProgressData data)
+        public bool TryApplyProgress(int stageKey, GameProgressData data)
         {
-            if (stageData == null || data == null)
+            if (data == null)
             {
                 return false;
             }
 
-            if (data.Cols != StageData.BoardCols)
+            if (data.Cols != BoardCols)
             {
                 return false;
             }
 
-            stageData.TryGetStage(stageKey, out var stage);
-            _stage = stage;
+            ResolveStageByKey(stageKey);
 
             if (_stage != null)
             {
@@ -94,12 +97,12 @@ namespace NTGame
                     return false;
                 }
 
-                if (data.StageInitialSpawnCount != _stage.InitialSpawnTileCount)
+                if (data.StageInitialSpawnCount != _stage.SpawnTileCount)
                 {
                     return false;
                 }
 
-                int shapeHash = CalcStageShapeHash(_stage);
+                int shapeHash = CalcStageShapeHash();
                 if (data.StageShapeHash != shapeHash)
                 {
                     return false;
@@ -180,23 +183,58 @@ namespace NTGame
             return true;
         }
 
-        static int CalcStageShapeHash(StageData.StageInfo stage)
+        int CalcStageShapeHash()
         {
-            if (stage == null || stage.ActiveRanges == null)
-            {
-                return 0;
-            }
-
             int hash = 17;
-            var ranges = stage.ActiveRanges;
-            hash = (hash * 31) + ranges.Count;
-            for (int i = 0; i < ranges.Count; i++)
+            hash = (hash * 31) + _stageLevels.Count;
+            for (int i = 0; i < _stageLevels.Count; i++)
             {
-                var rr = ranges[i];
-                hash = (hash * 31) + rr.StartCol;
-                hash = (hash * 31) + rr.EndCol;
+                StageLevel lv = _stageLevels[i];
+                if (lv == null)
+                {
+                    continue;
+                }
+                hash = (hash * 31) + lv.StartColumn;
+                hash = (hash * 31) + lv.EndColumn;
             }
             return hash;
+        }
+
+        void ResolveStageByKey(int stageKey)
+        {
+            _stage = null;
+            _stageLevels.Clear();
+
+            StageContainer stageContainer = DataManager.Instance.GetContainer<StageContainer>();
+            if (stageContainer == null)
+            {
+                return;
+            }
+            if (stageContainer.TryGet(stageKey, out Stage stage) == false)
+            {
+                return;
+            }
+            _stage = stage;
+
+            StageLevelContainer levelContainer = DataManager.Instance.GetContainer<StageLevelContainer>();
+            if (levelContainer == null)
+            {
+                return;
+            }
+            if (_stage.StageLevel == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _stage.StageLevel.Length; i++)
+            {
+                int levelId = _stage.StageLevel[i];
+                if (levelContainer.TryGet(levelId, out StageLevel level) == false)
+                {
+                    continue;
+                }
+                _stageLevels.Add(level);
+            }
         }
 
         bool _hasFirst;
@@ -259,28 +297,17 @@ namespace NTGame
             Array.Clear(_digitCount, 0, _digitCount.Length);
         }
 
-        public void StartStage(StageData stageData, int stageKey)
+        public void StartStage(int stageKey)
         {
-            if (stageData == null)
-            {
-                return;
-            }
-
-            stageData.TryGetStage(stageKey, out var stage);
-            StartStage(stage);
-        }
-
-        void StartStage(StageData.StageInfo stage)
-        {
-            _stage = stage;
+            ResolveStageByKey(stageKey);
 
             if (_stage == null)
             {
-                Debug.LogError("[TileManager] StageData의 StageInfo가 없습니다.");
+                Debug.LogError("[TileManager] Stage 데이터가 없습니다.");
                 return;
             }
 
-            _cellCount = Mathf.Max(0, _stage.InitialSpawnTileCount);
+            _cellCount = Mathf.Max(0, _stage.SpawnTileCount);
             _rows = Mathf.Max(2, Mathf.CeilToInt(_cellCount / (float)Cols));
             _values = new int[Rows, Cols];
             _active = new bool[Rows, Cols];
@@ -310,11 +337,7 @@ namespace NTGame
             _active = new bool[Rows, Cols];
             _rowActiveTileCount = new int[Rows];
 
-            bool hasRanges = _stage != null &&
-                             _stage.ActiveRanges != null &&
-                             _stage.ActiveRanges.Count > 0;
-
-            if (hasRanges == false)
+            if (_stageLevels.Count <= 0)
             {
                 return;
             }
@@ -512,7 +535,7 @@ namespace NTGame
 
         bool IsInStageShape(int row, int col)
         {
-            if (_stage == null || _stage.ActiveRanges == null || _stage.ActiveRanges.Count <= 0)
+            if (_stage == null || _stageLevels.Count <= 0)
             {
                 return false;
             }
@@ -525,9 +548,14 @@ namespace NTGame
             if (row < 0)
                 return false;
 
-            var rr = _stage.ActiveRanges[row % _stage.ActiveRanges.Count];
-            int s = rr.StartCol;
-            int e = rr.EndCol;
+            StageLevel lv = _stageLevels[row % _stageLevels.Count];
+            if (lv == null)
+            {
+                return false;
+            }
+
+            int s = lv.StartColumn;
+            int e = lv.EndColumn;
             if (s < 0 || e < 0)
             {
                 return false;

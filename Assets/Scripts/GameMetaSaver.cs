@@ -112,6 +112,25 @@ namespace NTGame
             return Mathf.Max(1, data.ClearedStageKey + 1);
         }
 
+        public static bool IsAllStageCleared(int maxStageKey)
+        {
+            if (maxStageKey <= 0)
+            {
+                return false;
+            }
+
+            if (TryLoad(out var data) == false)
+            {
+                return false;
+            }
+
+            if (data == null)
+            {
+                return false;
+            }
+
+            return data.ClearedStageKey >= maxStageKey;
+        }
     }
 }
 

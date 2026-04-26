@@ -1,27 +1,33 @@
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Jinhyeong_GameData;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace NTGame
 {
-    // 추후 UI 는 UIManager로 나눠서 Load/Release 관리
-    public class GameManager 
+    public class GameManager
         : SceneSingleton<GameManager>
         , ITileObserver
         , LobbyWindow.IListener
         , TileWindow.IListener
         , GameResultWindow.IListener
+        , AllStageClearWindow.IListener
     {
-        public StageData StageData;
         public Camera UICamera;
 
         [Header("Base Window 모음")]
         public LobbyWindow LobbyWindow;
         public TileWindow TileWindow;
         public GameResultWindow ResultWindow;
+        public AllStageClearWindow AllClearWindow;
 
         int _curStageKey = 1;
         bool _ignoreResultCheck;
         bool _isPlaying;
+
+        CancellationTokenSource _bootstrapCts;
 
         protected override void Awake()
         {
@@ -30,17 +36,39 @@ namespace NTGame
 
         void Start()
         {
-            Debug.Assert(StageData != null, "Stage Data 연결이 필요합니다");
+            _bootstrapCts = new CancellationTokenSource();
+            BootstrapAsync(_bootstrapCts.Token).Forget();
+        }
+
+        void OnDestroy()
+        {
+            if (_bootstrapCts != null)
+            {
+                _bootstrapCts.Cancel();
+                _bootstrapCts.Dispose();
+                _bootstrapCts = null;
+            }
+        }
+
+        async UniTaskVoid BootstrapAsync(CancellationToken cancellationToken)
+        {
             GameMetaSaver.EnsureCreated();
 
-            var startStageKey = 0;
+            await DataManager.Instance.InitializeAsync(cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            int startStageKey = 0;
 
             if (GameProgressSaver.TryFindMostRecentStageKey(out int progressStageKey))
                 startStageKey = Mathf.Max(1, progressStageKey);
             else
                 startStageKey = GameMetaSaver.GetNextStageAfterClearOrDefault(startStageKey);
 
-            if (StageData.TryGetStage(startStageKey, out _))
+            if (HasStage(startStageKey))
                 _curStageKey = startStageKey;
 
             _curStageKey = Mathf.Max(1, _curStageKey);
@@ -48,6 +76,77 @@ namespace NTGame
             LobbyWindow.Open(_curStageKey, this);
             TileWindow.Close();
             ResultWindow.Close();
+
+            if (AllClearWindow != null)
+            {
+                AllClearWindow.Close();
+            }
+        }
+
+        StageContainer GetStageContainer()
+        {
+            return DataManager.Instance.GetContainer<StageContainer>();
+        }
+
+        bool HasStage(int stageKey)
+        {
+            StageContainer container = GetStageContainer();
+            if (container == null)
+            {
+                return false;
+            }
+            return container.ContainsKey(stageKey);
+        }
+
+        int GetMaxStageKey()
+        {
+            StageContainer container = GetStageContainer();
+            if (container == null)
+            {
+                return 0;
+            }
+            int max = 0;
+            foreach (KeyValuePair<int, Stage> kv in container.All)
+            {
+                if (kv.Key > max)
+                {
+                    max = kv.Key;
+                }
+            }
+            return max;
+        }
+
+        bool IsAllStageCleared()
+        {
+            int maxStageKey = GetMaxStageKey();
+            if (maxStageKey <= 0)
+            {
+                return false;
+            }
+            return GameMetaSaver.IsAllStageCleared(maxStageKey);
+        }
+
+        void ShowAllStageClearWindow()
+        {
+            if (AllClearWindow == null)
+            {
+                Debug.LogWarning("[GameManager] AllClearWindow 연결이 필요합니다");
+                return;
+            }
+
+            _isPlaying = false;
+            _ignoreResultCheck = true;
+
+            if (TileWindow != null)
+            {
+                TileWindow.Close();
+            }
+            if (ResultWindow != null)
+            {
+                ResultWindow.Close();
+            }
+
+            AllClearWindow.Open(this);
         }
 
         void StartGame(int stageKey)
@@ -70,14 +169,14 @@ namespace NTGame
             tileManager.AddObserver(this);
 
             if (GameProgressSaver.TryLoad(_curStageKey, out var progress) &&
-                tileManager.TryApplyProgress(StageData, _curStageKey, progress))
+                tileManager.TryApplyProgress(_curStageKey, progress))
             {
                 _ignoreResultCheck = false;
                 TryShowResultIfNeeded();
                 return;
             }
 
-            tileManager.StartStage(StageData, _curStageKey);
+            tileManager.StartStage(_curStageKey);
             _ignoreResultCheck = false;
             TryShowResultIfNeeded();
         }
@@ -156,6 +255,11 @@ namespace NTGame
 
         void LobbyWindow.IListener.StartStage()
         {
+            if (IsAllStageCleared())
+            {
+                ShowAllStageClearWindow();
+                return;
+            }
             StartGame(_curStageKey);
         }
 
@@ -210,9 +314,15 @@ namespace NTGame
             if (gameResultType == GameResultType.ClearStage)
             {
                 int nextStageKey = _curStageKey + 1;
-                if (StageData != null && StageData.TryGetStage(nextStageKey, out var _))
+                if (HasStage(nextStageKey))
                 {
                     StartGame(nextStageKey);
+                    return;
+                }
+
+                if (IsAllStageCleared())
+                {
+                    ShowAllStageClearWindow();
                     return;
                 }
 
@@ -221,6 +331,24 @@ namespace NTGame
             }
 
             StartGame(_curStageKey);
+        }
+
+        void AllStageClearWindow.IListener.ClearGameData()
+        {
+            if (AllClearWindow != null)
+            {
+                AllClearWindow.Close();
+            }
+            ((LobbyWindow.IListener)this).ClearGameData();
+        }
+
+        void AllStageClearWindow.IListener.CancelAllClearWindow()
+        {
+            if (AllClearWindow != null)
+            {
+                AllClearWindow.Close();
+            }
+            GoToLobby();
         }
     }
 }

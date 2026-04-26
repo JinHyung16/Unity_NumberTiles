@@ -129,7 +129,7 @@ namespace TMPro.Examples
                         // Determine the random scale change for each character.
                         float randomScale = Random.Range(0.995f - 0.001f * ScaleMultiplier, 1.005f + 0.001f * ScaleMultiplier);
 
-                        // Open the matrix rotation.
+                        // Setup the matrix rotation.
                         matrix = Matrix4x4.TRS(Vector3.one, rotation, Vector3.one * randomScale);
 
                         // Apply the matrix TRS to the individual characters relative to the center of the current line.
