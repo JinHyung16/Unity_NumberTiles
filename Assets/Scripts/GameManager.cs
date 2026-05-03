@@ -299,6 +299,11 @@ namespace NTGame
         {
             TileManager.Instance.UseItem(itemType);
         }
+
+        void TileWindow.IListener.CancelTargetItem(ItemType itemType)
+        {
+            TileManager.Instance.CancelPendingTargetItem(itemType);
+        }
  
 
         void GameResultWindow.IListener.GoToLobby()

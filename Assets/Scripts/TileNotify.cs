@@ -13,7 +13,8 @@ namespace NTGame
         LineCleared = 8,
         DigitCleared = 9,
 
-        ItemCountChanged = 100
+        ItemCountChanged = 100,
+        PendingTargetChanged = 101,
     }
 
     public struct TileNotify

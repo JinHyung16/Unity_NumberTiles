@@ -372,10 +372,46 @@ namespace NTGame
 
         public bool BeginTargetItem(ItemType itemType)
         {
-            _pendingTargetItemType = itemType;
-            _lineSwapFirstRow = -1;
             ClearSelection();
+            // 같은 아이템을 다시 무장할 때(2단계 LineSwap 도중 토글 재클릭 등)
+            // 이전 1단계 선택을 무조건 리셋해서 재시작하도록.
+            _lineSwapFirstRow = -1;
+            SetPendingTargetItem(itemType);
             return true;
+        }
+
+        // 사용자가 토글을 OFF로 눌렀을 때처럼, 외부에서 무장 해제를 요청할 때 호출.
+        // 인자로 전달된 itemType이 현재 무장된 것과 일치할 때만 해제 (race 방지).
+        public bool CancelPendingTargetItem(ItemType itemType)
+        {
+            if (_pendingTargetItemType != itemType)
+            {
+                return false;
+            }
+
+            SetPendingTargetItem(ItemType.None);
+            return true;
+        }
+
+        // pending 상태 변경의 단일 진입점. 변경 시 PendingTargetChanged 알림 발송.
+        void SetPendingTargetItem(ItemType itemType)
+        {
+            if (_pendingTargetItemType == itemType)
+            {
+                return;
+            }
+
+            _pendingTargetItemType = itemType;
+            if (itemType == ItemType.None || itemType != ItemType.LineSwap)
+            {
+                _lineSwapFirstRow = -1;
+            }
+
+            Notify(new TileNotify
+            {
+                Type = TileNotifyType.PendingTargetChanged,
+                ItemType = itemType
+            });
         }
 
         public bool UseItem(ItemType itemType)
@@ -686,7 +722,7 @@ namespace NTGame
                 if (HasTile(row, col))
                 {
                     BreakTileAt(row, col);
-                    _pendingTargetItemType = ItemType.None;
+                    SetPendingTargetItem(ItemType.None);
                     return;
                 }
                 return;
@@ -715,8 +751,7 @@ namespace NTGame
 
                 if (TrySwapRowsForItem(_lineSwapFirstRow, row))
                 {
-                    _lineSwapFirstRow = -1;
-                    _pendingTargetItemType = ItemType.None;
+                    SetPendingTargetItem(ItemType.None);
                     ConsumeItem(ItemType.LineSwap);
                 }
                 return;
@@ -727,7 +762,7 @@ namespace NTGame
                 if (InBounds(row, col))
                 {
                     ClearDiagonalAt(row, col);
-                    _pendingTargetItemType = ItemType.None;
+                    SetPendingTargetItem(ItemType.None);
                     ConsumeItem(ItemType.DiagonalClear);
                 }
                 return;

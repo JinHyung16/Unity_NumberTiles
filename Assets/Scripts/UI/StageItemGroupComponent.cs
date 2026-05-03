@@ -1,27 +1,36 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace NTGame
 {
-    public class StageItemGroupComponent 
+    public class StageItemGroupComponent
         : MonoBehaviour
         , ITileObserver
     {
         public interface IListener
         {
             void OnClickUseItem(ItemType itemType);
+            void OnCancelTargetItem(ItemType itemType);
         }
+
         public TextMeshProUGUI AddTilesCountTxt;
         public TextMeshProUGUI BreakOneTileCountTxt;
         public TextMeshProUGUI LineSwapCountTxt;
         public TextMeshProUGUI DiagonalClearCountTxt;
 
+        public Toggle BreakOneTileToggle;
+        public Toggle LineSwapToggle;
+        public Toggle DiagonalClearToggle;
+
         IListener _listener;
+        bool _syncing;
 
         public void Open(IListener listener)
         {
             _listener = listener;
             RefreshCounts();
+            SyncTogglesToPending(ItemType.None);
             TileManager.Instance.AddObserver(this);
         }
 
@@ -34,14 +43,22 @@ namespace NTGame
         void RefreshCounts()
         {
             var tileManager = TileManager.Instance;
-            if (AddTilesCountTxt != null)
-                AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();
-            if (BreakOneTileCountTxt != null)
-                BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();
-            if (LineSwapCountTxt != null)
-                LineSwapCountTxt.text = tileManager.GetItemCount(ItemType.LineSwap).ToString();
-            if (DiagonalClearCountTxt != null)
-                DiagonalClearCountTxt.text = tileManager.GetItemCount(ItemType.DiagonalClear).ToString();
+            
+            AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();           
+            BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();     
+            LineSwapCountTxt.text = tileManager.GetItemCount(ItemType.LineSwap).ToString();
+            DiagonalClearCountTxt.text = tileManager.GetItemCount(ItemType.DiagonalClear).ToString();
+        }
+
+        void SyncTogglesToPending(ItemType pending)
+        {
+            _syncing = true;
+            
+            BreakOneTileToggle.isOn = (pending == ItemType.BreakOneTile);
+            LineSwapToggle.isOn = (pending == ItemType.LineSwap);
+            DiagonalClearToggle.isOn = (pending == ItemType.DiagonalClear);
+
+            _syncing = false;
         }
 
         void ITileObserver.OnNotify(TileNotify notify)
@@ -49,34 +66,60 @@ namespace NTGame
             if (notify.Type == TileNotifyType.BoardInit)
             {
                 RefreshCounts();
+                SyncTogglesToPending(ItemType.None);
                 return;
             }
 
             if (notify.Type == TileNotifyType.ItemCountChanged)
+            {
                 RefreshCounts();
+                return;
+            }
+
+            if (notify.Type == TileNotifyType.PendingTargetChanged)
+            {
+                SyncTogglesToPending(notify.ItemType);
+                return;
+            }
+        }
+
+        void OnTargetToggleChanged(ItemType itemType, bool isOn)
+        {
+            if (_syncing)
+                return;
+
+            if (_listener == null)
+                return;
+
+            if (isOn)
+            {
+                _listener.OnClickUseItem(itemType);
+                return;
+            }
+
+            _listener.OnCancelTargetItem(itemType);
         }
 
         #region Button Event Functions
         public void OnClickAddTileItem()
         {
-            _listener.OnClickUseItem(ItemType.AddTiles);
+            _listener?.OnClickUseItem(ItemType.AddTiles);
         }
 
-        public void OnClickBreakOneTileItem()
+        public void OnClickBreakOneTileItem(bool isOn)
         {
-            _listener.OnClickUseItem(ItemType.BreakOneTile);
+            OnTargetToggleChanged(ItemType.BreakOneTile, isOn);
         }
 
-        public void OnClickLineSwapItem()
+        public void OnClickLineSwapItem(bool isOn)
         {
-            _listener.OnClickUseItem(ItemType.LineSwap);
+            OnTargetToggleChanged(ItemType.LineSwap, isOn);
         }
 
-        public void OnClickDiagonalClearItem()
+        public void OnClickDiagonalClearItem(bool isOn)
         {
-            _listener.OnClickUseItem(ItemType.DiagonalClear);
+            OnTargetToggleChanged(ItemType.DiagonalClear, isOn);
         }
         #endregion
     }
 }
-

@@ -13,10 +13,11 @@ namespace NTGame
         , StageClearConditionNumberComponent.IListener
         , StageItemGroupComponent.IListener
     {
-        public interface IListener 
-        { 
+        public interface IListener
+        {
             void ExitGame();
             void UseItem(ItemType itemType);
+            void CancelTargetItem(ItemType itemType);
         }
 
 
@@ -234,6 +235,11 @@ namespace NTGame
         void StageItemGroupComponent.IListener.OnClickUseItem(ItemType itemType)
         {
             _listener.UseItem(itemType);
+        }
+
+        void StageItemGroupComponent.IListener.OnCancelTargetItem(ItemType itemType)
+        {
+            _listener.CancelTargetItem(itemType);
         }
     }
 }
