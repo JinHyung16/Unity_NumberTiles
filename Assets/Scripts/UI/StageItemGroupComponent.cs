@@ -86,10 +86,14 @@ namespace NTGame
         void OnTargetToggleChanged(ItemType itemType, bool isOn)
         {
             if (_syncing)
+            {
                 return;
+            }
 
             if (_listener == null)
+            {
                 return;
+            }
 
             if (isOn)
             {

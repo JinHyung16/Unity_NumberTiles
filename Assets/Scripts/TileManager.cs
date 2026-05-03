@@ -373,15 +373,11 @@ namespace NTGame
         public bool BeginTargetItem(ItemType itemType)
         {
             ClearSelection();
-            // 같은 아이템을 다시 무장할 때(2단계 LineSwap 도중 토글 재클릭 등)
-            // 이전 1단계 선택을 무조건 리셋해서 재시작하도록.
-            _lineSwapFirstRow = -1;
+            SetLineSwapFirstRow(-1);
             SetPendingTargetItem(itemType);
             return true;
         }
 
-        // 사용자가 토글을 OFF로 눌렀을 때처럼, 외부에서 무장 해제를 요청할 때 호출.
-        // 인자로 전달된 itemType이 현재 무장된 것과 일치할 때만 해제 (race 방지).
         public bool CancelPendingTargetItem(ItemType itemType)
         {
             if (_pendingTargetItemType != itemType)
@@ -393,7 +389,6 @@ namespace NTGame
             return true;
         }
 
-        // pending 상태 변경의 단일 진입점. 변경 시 PendingTargetChanged 알림 발송.
         void SetPendingTargetItem(ItemType itemType)
         {
             if (_pendingTargetItemType == itemType)
@@ -402,15 +397,29 @@ namespace NTGame
             }
 
             _pendingTargetItemType = itemType;
-            if (itemType == ItemType.None || itemType != ItemType.LineSwap)
+            if (itemType != ItemType.LineSwap)
             {
-                _lineSwapFirstRow = -1;
+                SetLineSwapFirstRow(-1);
             }
 
             Notify(new TileNotify
             {
                 Type = TileNotifyType.PendingTargetChanged,
                 ItemType = itemType
+            });
+        }
+
+        void SetLineSwapFirstRow(int row)
+        {
+            if (_lineSwapFirstRow == row)
+            {
+                return;
+            }
+            _lineSwapFirstRow = row;
+            Notify(new TileNotify
+            {
+                Type = TileNotifyType.LineSwapTargetChanged,
+                Value = row
             });
         }
 
@@ -666,7 +675,7 @@ namespace NTGame
             _itemCountDict[ItemType.LineSwap] = InitialItemCount;
             _itemCountDict[ItemType.DiagonalClear] = InitialItemCount;
 
-            _lineSwapFirstRow = -1;
+            SetLineSwapFirstRow(-1);
 
             _addTilesQueue.Clear();
             EnsureAddTilesQueueFilled();
@@ -737,15 +746,13 @@ namespace NTGame
 
                 if (_lineSwapFirstRow < 0)
                 {
-                    _lineSwapFirstRow = row;
-                    Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+                    SetLineSwapFirstRow(row);
                     return;
                 }
 
                 if (_lineSwapFirstRow == row)
                 {
-                    _lineSwapFirstRow = -1;
-                    Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+                    SetLineSwapFirstRow(-1);
                     return;
                 }
 
@@ -1079,8 +1086,6 @@ namespace NTGame
             });
         }
 
-        // 두 행의 모든 셀(active, value)을 통째로 swap.
-        // 같은 stage shape(IsInStageShape 결과가 모든 col에서 일치)을 가진 행끼리만 허용.
         public bool TrySwapRowsForItem(int rowA, int rowB)
         {
             if (rowA == rowB)
@@ -1089,11 +1094,6 @@ namespace NTGame
             }
 
             if (rowA < 0 || rowA >= Rows || rowB < 0 || rowB >= Rows)
-            {
-                return false;
-            }
-
-            if (HasSameRowShape(rowA, rowB) == false)
             {
                 return false;
             }
@@ -1114,24 +1114,43 @@ namespace NTGame
             _rowActiveTileCount[rowB] = tcnt;
 
             ClearSelection();
-            NotifyBoardInitAndChanged();
-            return true;
-        }
 
-        bool HasSameRowShape(int rowA, int rowB)
-        {
             for (int c = 0; c < Cols; c++)
             {
-                if (IsInStageShape(rowA, c) != IsInStageShape(rowB, c))
+                Notify(new TileNotify
                 {
-                    return false;
-                }
+                    Type = TileNotifyType.CellOpenChanged,
+                    Row = rowA,
+                    Col = c,
+                    Flag = _active[rowA, c]
+                });
+                Notify(new TileNotify
+                {
+                    Type = TileNotifyType.CellOpenChanged,
+                    Row = rowB,
+                    Col = c,
+                    Flag = _active[rowB, c]
+                });
+                Notify(new TileNotify
+                {
+                    Type = TileNotifyType.CellValueChanged,
+                    Row = rowA,
+                    Col = c,
+                    Value = _values[rowA, c]
+                });
+                Notify(new TileNotify
+                {
+                    Type = TileNotifyType.CellValueChanged,
+                    Row = rowB,
+                    Col = c,
+                    Value = _values[rowB, c]
+                });
             }
 
+            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
             return true;
         }
 
-        // 클릭한 셀이 속한 ↖↘ (NW→SE) 대각선 위 모든 타일 제거.
         public void ClearDiagonalAt(int row, int col)
         {
             if (InBounds(row, col) == false)
@@ -1141,7 +1160,6 @@ namespace NTGame
 
             ClearSelection();
 
-            // 좌상단 끝까지 거슬러 올라감
             int sr = row;
             int sc = col;
             while (sr > 0 && sc > 0)
@@ -1150,7 +1168,6 @@ namespace NTGame
                 sc--;
             }
 
-            // 우하단 끝까지 진행하며 모든 타일 제거
             int r = sr;
             int c = sc;
             while (r < Rows && c < Cols)

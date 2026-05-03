@@ -15,5 +15,11 @@ namespace NTGame
         ClearStage,
         FailStage
     }
+
+    public enum LineSwapHighlightType
+    {
+        None = 0,
+        Primary,
+    }
 }
 

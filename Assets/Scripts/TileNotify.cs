@@ -15,6 +15,7 @@ namespace NTGame
 
         ItemCountChanged = 100,
         PendingTargetChanged = 101,
+        LineSwapTargetChanged = 102,
     }
 
     public struct TileNotify

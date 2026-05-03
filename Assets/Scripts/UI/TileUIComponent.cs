@@ -27,6 +27,7 @@ namespace NTGame
         public Color RemovedTileColor = new Color(0.65f, 0.65f, 0.65f, 0.95f);
         public Color RemovedTextColor = new Color(0.65f, 0.65f, 0.65f, 0.9f);
         public Color SelectedTileColor = new Color(1f, 0.92f, 0.3f, 1f);
+        public Color LineSwapPrimaryColor = new Color(1f, 0.55f, 0.2f, 1f);
 
         TileCoordStruct _tileStruct = default;
         IListener _listener;
@@ -129,13 +130,29 @@ namespace NTGame
 
         public void SetSelected(bool selected)
         {
-            if (IsOpenCell == false) 
+            if (IsOpenCell == false)
                 return;
 
             if (IsActiveTile == false)
                 return;
 
             BGImg.color = selected ? SelectedTileColor : ActiveTileColor;
+        }
+
+        public void SetLineSwapHighlight(LineSwapHighlightType highlightType)
+        {
+            if (IsOpenCell == false)
+            {
+                return;
+            }
+
+            if (highlightType == LineSwapHighlightType.Primary)
+            {
+                SetBGAndOutlineColor(LineSwapPrimaryColor);
+                return;
+            }
+
+            SetBGAndOutlineColor(IsActiveTile ? ActiveTileColor : RemovedTileColor);
         }
 
         public Vector2 GetCenterScreenPoint()

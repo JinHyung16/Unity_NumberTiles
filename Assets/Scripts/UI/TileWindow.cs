@@ -161,6 +161,27 @@ namespace NTGame
             {
                 return;
             }
+
+            if (notify.Type == TileNotifyType.LineSwapTargetChanged)
+            {
+                UpdateLineSwapHighlights();
+                return;
+            }
+        }
+
+        void UpdateLineSwapHighlights()
+        {
+            int firstRow = TileManager.Instance.LineSwapPendingRow;
+            int cols = TileManager.BoardCols;
+
+            for (int i = 0; i < _tileList.Count; i++)
+            {
+                int r = i / cols;
+                LineSwapHighlightType highlight = (firstRow >= 0 && r == firstRow)
+                    ? LineSwapHighlightType.Primary
+                    : LineSwapHighlightType.None;
+                _tileList[i].SetLineSwapHighlight(highlight);
+            }
         }
 
         TileUIComponent GetTile(int row, int col)
