@@ -11,7 +11,6 @@ namespace NTGame
             if (_dict.TryGetValue(itemType, out var item))
                 return item;
 
-            // 무조건 1대1 매칭인데, 추후 안정성 높이기 
             item = CreateInternal(itemType);
             _dict[itemType] = item;
 
@@ -20,11 +19,17 @@ namespace NTGame
 
         ITileItem CreateInternal(ItemType itemType)
         {
-            if (itemType == ItemType.AddTiles) 
+            if (itemType == ItemType.AddTiles)
                 return new AddTilesItem();
 
-            if (itemType == ItemType.BreakOneTile) 
+            if (itemType == ItemType.BreakOneTile)
                 return new BreakOneTileItem();
+
+            if (itemType == ItemType.LineSwap)
+                return new LineSwapItem();
+
+            if (itemType == ItemType.DiagonalClear)
+                return new DiagonalClearItem();
 
             return null;
         }

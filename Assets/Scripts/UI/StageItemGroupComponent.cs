@@ -13,6 +13,8 @@ namespace NTGame
         }
         public TextMeshProUGUI AddTilesCountTxt;
         public TextMeshProUGUI BreakOneTileCountTxt;
+        public TextMeshProUGUI LineSwapCountTxt;
+        public TextMeshProUGUI DiagonalClearCountTxt;
 
         IListener _listener;
 
@@ -32,8 +34,14 @@ namespace NTGame
         void RefreshCounts()
         {
             var tileManager = TileManager.Instance;
-            AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();
-            BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();
+            if (AddTilesCountTxt != null)
+                AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();
+            if (BreakOneTileCountTxt != null)
+                BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();
+            if (LineSwapCountTxt != null)
+                LineSwapCountTxt.text = tileManager.GetItemCount(ItemType.LineSwap).ToString();
+            if (DiagonalClearCountTxt != null)
+                DiagonalClearCountTxt.text = tileManager.GetItemCount(ItemType.DiagonalClear).ToString();
         }
 
         void ITileObserver.OnNotify(TileNotify notify)
@@ -57,6 +65,16 @@ namespace NTGame
         public void OnClickBreakOneTileItem()
         {
             _listener.OnClickUseItem(ItemType.BreakOneTile);
+        }
+
+        public void OnClickLineSwapItem()
+        {
+            _listener.OnClickUseItem(ItemType.LineSwap);
+        }
+
+        public void OnClickDiagonalClearItem()
+        {
+            _listener.OnClickUseItem(ItemType.DiagonalClear);
         }
         #endregion
     }

@@ -6,6 +6,8 @@ namespace NTGame
         None = 0,
         AddTiles,
         BreakOneTile,
+        LineSwap,
+        DiagonalClear,
     }
     public enum GameResultType
     {

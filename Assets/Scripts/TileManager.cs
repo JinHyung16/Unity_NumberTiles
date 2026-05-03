@@ -41,6 +41,10 @@ namespace NTGame
         int _nextEmptyScanIndex;
         int _spawnCursorIndex;
         ItemType _pendingTargetItemType = ItemType.None;
+        int _lineSwapFirstRow = -1;
+
+        public ItemType PendingTargetItemType => _pendingTargetItemType;
+        public int LineSwapPendingRow => _lineSwapFirstRow;
 
         public int CurrentStageKey => _stage != null ? _stage.Id : 0;
 
@@ -369,6 +373,7 @@ namespace NTGame
         public bool BeginTargetItem(ItemType itemType)
         {
             _pendingTargetItemType = itemType;
+            _lineSwapFirstRow = -1;
             ClearSelection();
             return true;
         }
@@ -622,6 +627,10 @@ namespace NTGame
             _itemCountDict.Clear();
             _itemCountDict[ItemType.AddTiles] = InitialItemCount;
             _itemCountDict[ItemType.BreakOneTile] = InitialItemCount;
+            _itemCountDict[ItemType.LineSwap] = InitialItemCount;
+            _itemCountDict[ItemType.DiagonalClear] = InitialItemCount;
+
+            _lineSwapFirstRow = -1;
 
             _addTilesQueue.Clear();
             EnsureAddTilesQueueFilled();
@@ -679,6 +688,47 @@ namespace NTGame
                     BreakTileAt(row, col);
                     _pendingTargetItemType = ItemType.None;
                     return;
+                }
+                return;
+            }
+
+            if (_pendingTargetItemType == ItemType.LineSwap)
+            {
+                if (row < 0 || row >= Rows)
+                {
+                    return;
+                }
+
+                if (_lineSwapFirstRow < 0)
+                {
+                    _lineSwapFirstRow = row;
+                    Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+                    return;
+                }
+
+                if (_lineSwapFirstRow == row)
+                {
+                    _lineSwapFirstRow = -1;
+                    Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
+                    return;
+                }
+
+                if (TrySwapRowsForItem(_lineSwapFirstRow, row))
+                {
+                    _lineSwapFirstRow = -1;
+                    _pendingTargetItemType = ItemType.None;
+                    ConsumeItem(ItemType.LineSwap);
+                }
+                return;
+            }
+
+            if (_pendingTargetItemType == ItemType.DiagonalClear)
+            {
+                if (InBounds(row, col))
+                {
+                    ClearDiagonalAt(row, col);
+                    _pendingTargetItemType = ItemType.None;
+                    ConsumeItem(ItemType.DiagonalClear);
                 }
                 return;
             }
@@ -978,14 +1028,109 @@ namespace NTGame
             CollapseEmptyRows_RemoveRow();
             Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
 
-            _itemCountDict[ItemType.BreakOneTile] = Mathf.Max(0, GetItemCount(ItemType.BreakOneTile) - 1);
+            ConsumeItem(ItemType.BreakOneTile);
+        }
+
+        void ConsumeItem(ItemType itemType)
+        {
+            int next = Mathf.Max(0, GetItemCount(itemType) - 1);
+            _itemCountDict[itemType] = next;
 
             Notify(new TileNotify
             {
                 Type = TileNotifyType.ItemCountChanged,
-                ItemType = ItemType.BreakOneTile,
-                ItemCount = GetItemCount(ItemType.BreakOneTile)
+                ItemType = itemType,
+                ItemCount = next
             });
+        }
+
+        // 두 행의 모든 셀(active, value)을 통째로 swap.
+        // 같은 stage shape(IsInStageShape 결과가 모든 col에서 일치)을 가진 행끼리만 허용.
+        public bool TrySwapRowsForItem(int rowA, int rowB)
+        {
+            if (rowA == rowB)
+            {
+                return false;
+            }
+
+            if (rowA < 0 || rowA >= Rows || rowB < 0 || rowB >= Rows)
+            {
+                return false;
+            }
+
+            if (HasSameRowShape(rowA, rowB) == false)
+            {
+                return false;
+            }
+
+            for (int c = 0; c < Cols; c++)
+            {
+                bool ta = _active[rowA, c];
+                _active[rowA, c] = _active[rowB, c];
+                _active[rowB, c] = ta;
+
+                int tv = _values[rowA, c];
+                _values[rowA, c] = _values[rowB, c];
+                _values[rowB, c] = tv;
+            }
+
+            int tcnt = _rowActiveTileCount[rowA];
+            _rowActiveTileCount[rowA] = _rowActiveTileCount[rowB];
+            _rowActiveTileCount[rowB] = tcnt;
+
+            ClearSelection();
+            NotifyBoardInitAndChanged();
+            return true;
+        }
+
+        bool HasSameRowShape(int rowA, int rowB)
+        {
+            for (int c = 0; c < Cols; c++)
+            {
+                if (IsInStageShape(rowA, c) != IsInStageShape(rowB, c))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // 클릭한 셀이 속한 ↖↘ (NW→SE) 대각선 위 모든 타일 제거.
+        public void ClearDiagonalAt(int row, int col)
+        {
+            if (InBounds(row, col) == false)
+            {
+                return;
+            }
+
+            ClearSelection();
+
+            // 좌상단 끝까지 거슬러 올라감
+            int sr = row;
+            int sc = col;
+            while (sr > 0 && sc > 0)
+            {
+                sr--;
+                sc--;
+            }
+
+            // 우하단 끝까지 진행하며 모든 타일 제거
+            int r = sr;
+            int c = sc;
+            while (r < Rows && c < Cols)
+            {
+                if (HasTile(r, c))
+                {
+                    RemoveTile(r, c);
+                }
+
+                r++;
+                c++;
+            }
+
+            CollapseEmptyRows_RemoveRow();
+            Notify(new TileNotify { Type = TileNotifyType.BoardChanged });
         }
 
         void AddDigitCount(int row, int value)
