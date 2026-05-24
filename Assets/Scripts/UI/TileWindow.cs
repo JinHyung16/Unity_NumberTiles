@@ -147,6 +147,7 @@ namespace NTGame
             if (notify.Type == TileNotifyType.DigitCleared)
             {
                 StatusAlarmPanel.ShowTileNumberClearAlarm(notify.Value);
+                SoundManager.Instance.PlaySfx(SoundType.NumberClear);
                 return;
             }
 
@@ -244,6 +245,7 @@ namespace NTGame
 
         void TileUIComponent.IListener.OnClickTile(TileUIComponent comp)
         {
+            SoundManager.Instance.PlaySfx(SoundType.TileClick);
             TileManager.Instance.OnTileClicked(comp.Row, comp.Col);
         }
 

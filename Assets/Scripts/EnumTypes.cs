@@ -21,5 +21,14 @@ namespace NTGame
         None = 0,
         Primary,
     }
+
+    public enum SoundType
+    {
+        None = 0,
+        TileClick,
+        NumberClear,
+        RoundClear,
+        RoundFail,
+    }
 }
 

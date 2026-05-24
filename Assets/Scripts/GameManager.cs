@@ -209,7 +209,14 @@ namespace NTGame
 
             GameProgressSaver.Delete(_curStageKey);
             if (gameResultType == GameResultType.ClearStage)
+            {
                 GameMetaSaver.UpdateClearedStage(_curStageKey);
+                SoundManager.Instance.PlaySfx(SoundType.RoundClear);
+            }
+            else if (gameResultType == GameResultType.FailStage)
+            {
+                SoundManager.Instance.PlaySfx(SoundType.RoundFail);
+            }
 
             var tileManager = TileManager.Instance;
             tileManager.RemoveObserver(this);
