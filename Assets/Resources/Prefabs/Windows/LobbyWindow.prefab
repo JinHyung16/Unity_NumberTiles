@@ -461,6 +461,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GameStartTxt: {fileID: 7168806116752832640}
   ResetStageTxt: {fileID: 8135334958945821996}
+  ResetStageBtnObj: {fileID: 1916191219409064098}
 --- !u!1 &6471920645858138609
 GameObject:
   m_ObjectHideFlags: 0

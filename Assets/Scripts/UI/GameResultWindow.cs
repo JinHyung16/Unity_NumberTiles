@@ -39,8 +39,9 @@ namespace NTGame
             var isClearStage = _gameResultType == GameResultType.ClearStage;
             StageStatusText.text = isClearStage ? "성공" : "실패";
 
+            int targetStage = isClearStage ? stage + 1 : stage;
             var stageStr = isClearStage ? "다음 스테이지" : "다시하기";
-            var stageBtnStr = $"{stageStr}\n{stage}";
+            var stageBtnStr = $"{stageStr}\n{targetStage}";
             GoToStageBtnTxt.text = stageBtnStr;
         }
 

@@ -16,14 +16,25 @@ namespace NTGame
 
         public TextMeshProUGUI GameStartTxt;
         public TextMeshProUGUI ResetStageTxt;
+        public GameObject ResetStageBtnObj;
 
         IListener _listener;
-        public void Open(int curStage, IListener listener)
+        public void Open(int curStage, bool hasProgress, IListener listener)
         {
             OpenInternal(() =>
             {
-                GameStartTxt.text = $"{curStage} ÀÌ¾îÇÏ±â";
-                ResetStageTxt.text = $"{curStage} ´Ù½ÃÇÏ±â";
+                GameStartTxt.text = $"{curStage} ì´ì–´í•˜ê¸°";
+                if (ResetStageTxt != null)
+                {
+                    ResetStageTxt.text = $"{curStage} ë‹¤ì‹œí•˜ê¸°";
+                }
+
+                bool showResetButton = curStage > 1 || hasProgress;
+                if (ResetStageBtnObj != null)
+                {
+                    ResetStageBtnObj.SetActive(showResetButton);
+                }
+
                 _listener = listener;
             });
         }

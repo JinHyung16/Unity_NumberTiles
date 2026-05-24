@@ -73,7 +73,7 @@ namespace NTGame
 
             _curStageKey = Mathf.Max(1, _curStageKey);
 
-            LobbyWindow.Open(_curStageKey, this);
+            LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
             TileWindow.Close();
             ResultWindow.Close();
 
@@ -96,6 +96,15 @@ namespace NTGame
                 return false;
             }
             return container.ContainsKey(stageKey);
+        }
+
+        bool HasStageProgress(int stageKey)
+        {
+            if (stageKey <= 0)
+            {
+                return false;
+            }
+            return GameProgressSaver.TryLoad(stageKey, out _);
         }
 
         int GetMaxStageKey()
@@ -239,7 +248,7 @@ namespace NTGame
             if (LobbyWindow != null)
             {
                 LobbyWindow.gameObject.SetActive(true);
-                LobbyWindow.Open(_curStageKey, this);
+                LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
             }
 
             TileManager.Instance.ClearObservers();
@@ -299,7 +308,7 @@ namespace NTGame
             _ignoreResultCheck = true;
 
             TileWindow.Close();
-            LobbyWindow.Open(_curStageKey, this);
+            LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
         }
 
         void TileWindow.IListener.UseItem(ItemType itemType)
