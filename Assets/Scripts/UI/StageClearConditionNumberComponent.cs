@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace NTGame
 {
@@ -23,6 +24,7 @@ namespace NTGame
         {
             Debug.Assert(NumberArray != null, "NumberArray에 1~9까지 바인딩되어 있어야 합니다.");
             _listener = listener;
+            Init();
             Refresh();
             TileManager.Instance.AddObserver(this);
         }
@@ -36,6 +38,19 @@ namespace NTGame
             {
                 var label = NumberArray[i];
                 label.color = ActiveColor;
+            }
+        }
+
+        void Init()
+        {
+            var length = NumberArray.Length;
+            for (int i = 0; i < length; i++)
+            {
+                var label = NumberArray[i];
+                if (label == null)
+                    continue;
+
+                label.text = i.ToString();
             }
         }
 

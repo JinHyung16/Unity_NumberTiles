@@ -21,7 +21,7 @@ namespace NTGame
         {
             OpenInternal(() =>
             {
-                StageTxt.text = curStage.ToString();
+                StageTxt.text = $"{curStage} 이어하기";
                 _listener = listener;
             });
         }
