@@ -27,7 +27,7 @@ namespace NTGame
         
         public StageClearConditionNumberComponent ConditionComponent;
         public StageItemGroupComponent StageItemComp;
-        public TileStatusAlarmPanel StatusAlarmPanel;
+        public ToastMessagePanel ToastMessage;
 
         IListener _listener;
         List<TileUIComponent> _tileList = new List<TileUIComponent>();
@@ -37,7 +37,7 @@ namespace NTGame
             OpenInternal(() =>
             {
                 _listener = listener;
-                StatusAlarmPanel.Close();
+                ToastMessage.Close();
                 ConditionComponent.Open(this);
                 StageItemComp.Open(this);
                 TileManager.Instance.AddObserver(this);
@@ -55,7 +55,7 @@ namespace NTGame
             _tileList.Clear();
             ConditionComponent.Close();
             StageItemComp.Close();
-            StatusAlarmPanel.Close();
+            ToastMessage.Close();
         }
 
         public Vector2 GetCellCenterScreen(int row, int col)
@@ -140,13 +140,13 @@ namespace NTGame
 
             if (notify.Type == TileNotifyType.LineCleared)
             {
-                StatusAlarmPanel.ShowLineClearAlarm();
+                ToastMessage.ShowLineClearAlarm();
                 return;
             }
 
             if (notify.Type == TileNotifyType.DigitCleared)
             {
-                StatusAlarmPanel.ShowTileNumberClearAlarm(notify.Value);
+                ToastMessage.ShowTileNumberClearAlarm(notify.Value);
                 SoundManager.Instance.PlaySfx(SoundType.NumberClear);
                 return;
             }

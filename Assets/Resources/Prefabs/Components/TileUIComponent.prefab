@@ -214,23 +214,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ColorDataList:
   - Key: 1
-    Color: {r: 0.9607843, g: 0.96862745, b: 1, a: 1}
+    Color: {r: 0.827451, g: 0.18431373, b: 0.18431373, a: 1}
   - Key: 2
-    Color: {r: 0.8666667, g: 0.9019608, b: 1, a: 1}
+    Color: {r: 0.9607843, g: 0.4862745, b: 0, a: 1}
   - Key: 3
-    Color: {r: 0.7490196, g: 0.8901961, b: 1, a: 1}
+    Color: {r: 0.9764706, g: 0.65882355, b: 0.14509805, a: 1}
   - Key: 4
-    Color: {r: 0.49803922, g: 0.90588236, b: 0.83137256, a: 1}
+    Color: {r: 0.40784314, g: 0.62352943, b: 0.21960784, a: 1}
   - Key: 5
-    Color: {r: 0.60784316, g: 0.9098039, b: 0.4392157, a: 1}
+    Color: {r: 0, g: 0.5372549, b: 0.48235294, a: 1}
   - Key: 6
-    Color: {r: 1, g: 0.8784314, b: 0.41960785, a: 1}
+    Color: {r: 0.007843138, g: 0.5333333, b: 0.81960785, a: 1}
   - Key: 7
-    Color: {r: 1, g: 0.72156864, b: 0.41960785, a: 1}
+    Color: {r: 0.09803922, g: 0.4627451, b: 0.8235294, a: 1}
   - Key: 8
-    Color: {r: 1, g: 0.47843137, b: 0.63529414, a: 1}
+    Color: {r: 0.84705883, g: 0.10588235, b: 0.3764706, a: 1}
   - Key: 9
-    Color: {r: 0.7490196, g: 0.65882355, b: 1, a: 1}
+    Color: {r: 0.27058825, g: 0.3529412, b: 0.39215687, a: 1}
 --- !u!114 &2657883596283353913
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,8 +249,8 @@ MonoBehaviour:
   BGImg: {fileID: 5587532357456641071}
   OutlineImg: {fileID: 6768084136706218799}
   TextColor: {fileID: 7169987810895926957}
-  TileBoardBGColor: {r: 0.12, g: 0.14, b: 0.22, a: 1}
-  ActiveTileColor: {r: 0.44255075, g: 0.45914847, b: 0.8018868, a: 0.95}
+  TileBoardBGColor: {r: 1, g: 0.972549, b: 0.9411765, a: 1}
+  ActiveTileColor: {r: 1, g: 0.5411765, b: 0.29803923, a: 0.95}
   RemovedTileColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.95}
   RemovedTextColor: {r: 0.3018868, g: 0.3018868, b: 0.3018868, a: 0.9}
   SelectedTileColor: {r: 1, g: 0.92, b: 0.3, a: 1}
