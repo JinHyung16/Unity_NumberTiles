@@ -50,7 +50,8 @@ namespace NTGame
                 if (label == null)
                     continue;
 
-                label.text = i.ToString();
+                var digit = i + 1;
+                label.text = digit.ToString();
             }
         }
 
@@ -64,7 +65,7 @@ namespace NTGame
                 if (label == null)
                     continue;
 
-                int digit = i + 1;
+                var digit = i + 1;
                 bool cleared = tileManager.IsDigitCleared(digit);
                 label.color = cleared ? ClearedColor : ActiveColor;
             }
