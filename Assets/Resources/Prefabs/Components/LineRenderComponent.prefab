@@ -59,7 +59,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.9320468, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -89,4 +89,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Thickness: 10
+  DrawInSeconds: 0.08
+  HoldSeconds: 0.18
+  FadeOutSeconds: 0.15
+  EndThicknessScale: 1.5
   _lineRect: {fileID: 2664212930587089546}
+  _lineImage: {fileID: 7945311914969341279}

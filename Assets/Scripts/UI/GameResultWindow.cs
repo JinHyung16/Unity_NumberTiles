@@ -14,7 +14,6 @@ namespace NTGame
 
         public TMPro.TextMeshProUGUI StageStatusText;
         public TMPro.TextMeshProUGUI GoToStageBtnTxt;
-        public TMPro.TextMeshProUGUI GoToStageBtnStageTxt;
 
         GameResultType _gameResultType;
         IListener _listener;
@@ -38,9 +37,11 @@ namespace NTGame
         void SetText(int stage)
         {
             var isClearStage = _gameResultType == GameResultType.ClearStage;
-            StageStatusText.text = isClearStage ? "클리어!" : "실패";
-            GoToStageBtnTxt.text = isClearStage ? "다음 스테이지" : "다시하기";
-            GoToStageBtnStageTxt.text = stage.ToString();
+            StageStatusText.text = isClearStage ? "성공" : "실패";
+
+            var stageStr = isClearStage ? "다음 스테이지" : "다시하기";
+            var stageBtnStr = $"{stageStr}\n{stage}";
+            GoToStageBtnTxt.text = stageBtnStr;
         }
 
         public void OnClickGoToLobby()

@@ -5,7 +5,7 @@ namespace NTGame
 {
     public class PoolManager : SceneSingleton<PoolManager>
     {
-        static readonly string TileUIPrefabResourcePath = "TileUIComponent";
+        static readonly string TileUIPrefabResourcePath = "Prefabs/Components/TileUIComponent";
         const int PrewarmCount = 100;
 
         Transform _poolRoot;
