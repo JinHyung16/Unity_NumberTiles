@@ -533,7 +533,7 @@ MonoBehaviour:
   TileLineRender: {fileID: 3103645388243317171}
   ConditionComponent: {fileID: 1298276966190209860}
   StageItemComp: {fileID: 3931751046404286848}
-  ToastMessage: {fileID: 0}
+  ToastMessage: {fileID: 7506806321517824819}
 --- !u!1 &6687792721921057411
 GameObject:
   m_ObjectHideFlags: 0
@@ -825,6 +825,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4318516510217442267, guid: 4d9c508c78b6f3b4c89ebc36d2189ad0, type: 3}
   m_PrefabInstance: {fileID: 2556011597962606709}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7506806321517824819 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5428332414716670790, guid: 4d9c508c78b6f3b4c89ebc36d2189ad0, type: 3}
+  m_PrefabInstance: {fileID: 2556011597962606709}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd72c5e04fbabb44fbe92d1f517570eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &6173431155284186459
 PrefabInstance:
   m_ObjectHideFlags: 0

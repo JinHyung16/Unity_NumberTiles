@@ -459,7 +459,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 307d99bf192f4bb4a85f5718e1b3e150, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  StageTxt: {fileID: 7168806116752832640}
+  GameStartTxt: {fileID: 7168806116752832640}
+  ResetStageTxt: {fileID: 8135334958945821996}
 --- !u!1 &6471920645858138609
 GameObject:
   m_ObjectHideFlags: 0
@@ -1362,6 +1363,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3907970805634439412, guid: 7b06036274e943e48b19efc6d897af24, type: 3}
   m_PrefabInstance: {fileID: 7274733648020883867}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8135334958945821996 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1446657957849050295, guid: 7b06036274e943e48b19efc6d897af24, type: 3}
+  m_PrefabInstance: {fileID: 7274733648020883867}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &7335231917716116929
 PrefabInstance:
   m_ObjectHideFlags: 0

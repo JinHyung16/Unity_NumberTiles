@@ -14,14 +14,16 @@ namespace NTGame
             void ClearGameData();
         }
 
-        public TextMeshProUGUI StageTxt;
+        public TextMeshProUGUI GameStartTxt;
+        public TextMeshProUGUI ResetStageTxt;
 
         IListener _listener;
         public void Open(int curStage, IListener listener)
         {
             OpenInternal(() =>
             {
-                StageTxt.text = $"{curStage} 이어하기";
+                GameStartTxt.text = $"{curStage} 이어하기";
+                ResetStageTxt.text = $"{curStage} 다시하기";
                 _listener = listener;
             });
         }
