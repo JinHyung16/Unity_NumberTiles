@@ -249,12 +249,12 @@ MonoBehaviour:
   BGImg: {fileID: 5587532357456641071}
   OutlineImg: {fileID: 6768084136706218799}
   TextColor: {fileID: 7169987810895926957}
-  TileBoardBGColor: {r: 1, g: 0.972549, b: 0.9411765, a: 1}
+  TileBoardBGColor: {r: 0.6509804, g: 0.6509804, b: 0.6509804, a: 0.9490196}
   ActiveTileColor: {r: 1, g: 0.5411765, b: 0.29803923, a: 0.95}
-  RemovedTileColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.95}
-  RemovedTextColor: {r: 0.3018868, g: 0.3018868, b: 0.3018868, a: 0.9}
+  RemovedTileColor: {r: 0.3019608, g: 0.3019608, b: 0.3019608, a: 1}
+  RemovedTextColor: {r: 0.4339623, g: 0.4339623, b: 0.4339623, a: 0.9}
   SelectedTileColor: {r: 1, g: 0.92, b: 0.3, a: 1}
-  LineSwapPrimaryColor: {r: 1, g: 0.55, b: 0.2, a: 1}
+  LineSwapPrimaryColor: {r: 0.5424059, g: 1, b: 0.19999999, a: 1}
 --- !u!114 &2190396541916497683
 MonoBehaviour:
   m_ObjectHideFlags: 0
