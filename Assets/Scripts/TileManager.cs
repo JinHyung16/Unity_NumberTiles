@@ -458,7 +458,44 @@ namespace NTGame
 
         public int SpawnAddTilesBatch()
         {
-            return SpawnAppendAfterLast(AddTilesSpawnPerBatch);
+            int spawnCount = AddTilesSpawnPerBatch;
+
+            // 클리어 해야 할 숫자가 1종류만 남았고 보드에 그 숫자가 홀수 개로 있으면,
+            // 1개만 추가해서 짝수로 맞춤. (그렇지 않으면 N개 추가 후에도 1개가 남아 stuck 상태 발생)
+            // ex) 7만 남고 보드에 7이 1개 → 14개 추가 시 총 15개로 홀수 → 짝 맞춰도 1개 남음.
+            if (TryGetSingleUnclearedDigit(out int lastDigit))
+            {
+                if ((_digitCount[lastDigit] & 1) == 1)
+                {
+                    spawnCount = 1;
+                }
+            }
+
+            return SpawnAppendAfterLast(spawnCount);
+        }
+
+        bool TryGetSingleUnclearedDigit(out int digit)
+        {
+            digit = 0;
+            int found = 0;
+            for (int d = 1; d <= MaxDigit; d++)
+            {
+                if (_digitCleared[d])
+                {
+                    continue;
+                }
+
+                found++;
+                if (found > 1)
+                {
+                    digit = 0;
+                    return false;
+                }
+
+                digit = d;
+            }
+
+            return found == 1;
         }
 
         int SpawnAppendAfterLast(int spawnCount)
