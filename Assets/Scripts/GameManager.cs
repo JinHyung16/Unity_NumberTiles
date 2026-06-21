@@ -3,6 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Jinhyeong_GameData;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 
 namespace NTGame
@@ -13,15 +15,17 @@ namespace NTGame
         , LobbyWindow.IListener
         , TileWindow.IListener
         , GameResultWindow.IListener
-        , AllStageClearWindow.IListener
     {
         public Camera UICamera;
 
-        [Header("Base Window 모음")]
-        public LobbyWindow LobbyWindow;
-        public TileWindow TileWindow;
-        public GameResultWindow ResultWindow;
-        public AllStageClearWindow AllClearWindow;
+        [Tooltip("어드레서블로 생성한 윈도우의 부모. 비워두면 씬 루트에 생성된다.")]
+        public Transform WindowRoot;
+
+        LobbyWindow _lobbyWindow;
+        TileWindow _tileWindow;
+        GameResultWindow _resultWindow;
+
+        readonly List<AsyncOperationHandle<GameObject>> _windowHandles = new List<AsyncOperationHandle<GameObject>>(4);
 
         int _curStageKey = 1;
         bool _ignoreResultCheck;
@@ -48,6 +52,8 @@ namespace NTGame
                 _bootstrapCts.Dispose();
                 _bootstrapCts = null;
             }
+
+            ReleaseWindows();
         }
 
         async UniTaskVoid BootstrapAsync(CancellationToken cancellationToken)
@@ -55,6 +61,13 @@ namespace NTGame
             GameMetaSaver.EnsureCreated();
 
             await DataManager.Instance.InitializeAsync(cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await LoadWindowsAsync(cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -73,14 +86,52 @@ namespace NTGame
 
             _curStageKey = Mathf.Max(1, _curStageKey);
 
-            LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
-            TileWindow.Close();
-            ResultWindow.Close();
+            _lobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
+            _tileWindow.Close();
+            _resultWindow.Close();
+        }
 
-            if (AllClearWindow != null)
+        async UniTask LoadWindowsAsync(CancellationToken cancellationToken)
+        {
+            _lobbyWindow = await InstantiateWindowAsync<LobbyWindow>(AddressableKeys.Windows.Lobby, cancellationToken);
+            _tileWindow = await InstantiateWindowAsync<TileWindow>(AddressableKeys.Windows.Tile, cancellationToken);
+            _resultWindow = await InstantiateWindowAsync<GameResultWindow>(AddressableKeys.Windows.GameResult, cancellationToken);
+        }
+
+        async UniTask<T> InstantiateWindowAsync<T>(string address, CancellationToken cancellationToken) where T : BaseWindow
+        {
+            AsyncOperationHandle<GameObject> handle = Addressables.InstantiateAsync(address, WindowRoot);
+            _windowHandles.Add(handle);
+
+            GameObject instance = await handle.ToUniTask(cancellationToken: cancellationToken);
+
+            var window = instance.GetComponent<T>();
+            Debug.Assert(window != null, $"[GameManager] 어드레서블 \"{address}\" 에 {typeof(T).Name} 컴포넌트가 없습니다");
+
+            var canvas = instance.GetComponent<Canvas>();
+            if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceCamera)
             {
-                AllClearWindow.Close();
+                canvas.worldCamera = UICamera;
             }
+
+            return window;
+        }
+
+        void ReleaseWindows()
+        {
+            _lobbyWindow = null;
+            _tileWindow = null;
+            _resultWindow = null;
+
+            for (int i = 0; i < _windowHandles.Count; i++)
+            {
+                AsyncOperationHandle<GameObject> handle = _windowHandles[i];
+                if (handle.IsValid())
+                {
+                    Addressables.ReleaseInstance(handle);
+                }
+            }
+            _windowHandles.Clear();
         }
 
         StageContainer GetStageContainer()
@@ -107,57 +158,6 @@ namespace NTGame
             return GameProgressSaver.TryLoad(stageKey, out _);
         }
 
-        int GetMaxStageKey()
-        {
-            StageContainer container = GetStageContainer();
-            if (container == null)
-            {
-                return 0;
-            }
-            int max = 0;
-            foreach (KeyValuePair<int, Stage> kv in container.All)
-            {
-                if (kv.Key > max)
-                {
-                    max = kv.Key;
-                }
-            }
-            return max;
-        }
-
-        bool IsAllStageCleared()
-        {
-            int maxStageKey = GetMaxStageKey();
-            if (maxStageKey <= 0)
-            {
-                return false;
-            }
-            return GameMetaSaver.IsAllStageCleared(maxStageKey);
-        }
-
-        void ShowAllStageClearWindow()
-        {
-            if (AllClearWindow == null)
-            {
-                Debug.LogWarning("[GameManager] AllClearWindow 연결이 필요합니다");
-                return;
-            }
-
-            _isPlaying = false;
-            _ignoreResultCheck = true;
-
-            if (TileWindow != null)
-            {
-                TileWindow.Close();
-            }
-            if (ResultWindow != null)
-            {
-                ResultWindow.Close();
-            }
-
-            AllClearWindow.Open(this);
-        }
-
         void StartGame(int stageKey)
         {
             _curStageKey = Mathf.Max(1, stageKey);
@@ -166,12 +166,12 @@ namespace NTGame
             var tileManager = TileManager.Instance;
             tileManager.ClearObservers();
 
-            LobbyWindow.Close();
-            ResultWindow.Close();
+            _lobbyWindow.Close();
+            _resultWindow.Close();
 
             PoolManager.Instance.InitPool();
 
-            TileWindow.Open(this);
+            _tileWindow.Open(this);
 
             _isPlaying = true;
             _ignoreResultCheck = true;
@@ -230,25 +230,25 @@ namespace NTGame
             var tileManager = TileManager.Instance;
             tileManager.RemoveObserver(this);
 
-            if (TileWindow != null)
-                TileWindow.Close();
+            if (_tileWindow != null)
+                _tileWindow.Close();
 
-            if (ResultWindow != null)
-                ResultWindow.Open(_curStageKey, gameResultType, this);
+            if (_resultWindow != null)
+                _resultWindow.Open(_curStageKey, gameResultType, this);
         }
 
         void GoToLobby()
         {
-            if (ResultWindow != null)
-                ResultWindow.Close();
+            if (_resultWindow != null)
+                _resultWindow.Close();
 
-            if (TileWindow != null)
-                TileWindow.Close();
+            if (_tileWindow != null)
+                _tileWindow.Close();
 
-            if (LobbyWindow != null)
+            if (_lobbyWindow != null)
             {
-                LobbyWindow.gameObject.SetActive(true);
-                LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
+                _lobbyWindow.gameObject.SetActive(true);
+                _lobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
             }
 
             TileManager.Instance.ClearObservers();
@@ -271,11 +271,6 @@ namespace NTGame
 
         void LobbyWindow.IListener.StartStage()
         {
-            if (IsAllStageCleared())
-            {
-                ShowAllStageClearWindow();
-                return;
-            }
             StartGame(_curStageKey);
         }
 
@@ -294,8 +289,8 @@ namespace NTGame
             GameProgressSaver.DeleteAll();
             GameMetaSaver.Reset();
 
-            TileWindow.Close();
-            ResultWindow.Close();
+            _tileWindow.Close();
+            _resultWindow.Close();
 
             var activeScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(activeScene.buildIndex);
@@ -307,8 +302,8 @@ namespace NTGame
             _isPlaying = false;
             _ignoreResultCheck = true;
 
-            TileWindow.Close();
-            LobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
+            _tileWindow.Close();
+            _lobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
         }
 
         void TileWindow.IListener.UseItem(ItemType itemType)
@@ -320,7 +315,7 @@ namespace NTGame
         {
             TileManager.Instance.CancelPendingTargetItem(itemType);
         }
- 
+
 
         void GameResultWindow.IListener.GoToLobby()
         {
@@ -329,8 +324,8 @@ namespace NTGame
 
         void GameResultWindow.IListener.GoToStage(GameResultType gameResultType)
         {
-            if (ResultWindow != null)
-                ResultWindow.Close();
+            if (_resultWindow != null)
+                _resultWindow.Close();
 
             if (gameResultType == GameResultType.ClearStage)
             {
@@ -341,36 +336,11 @@ namespace NTGame
                     return;
                 }
 
-                if (IsAllStageCleared())
-                {
-                    ShowAllStageClearWindow();
-                    return;
-                }
-
                 GoToLobby();
                 return;
             }
 
             StartGame(_curStageKey);
         }
-
-        void AllStageClearWindow.IListener.ClearGameData()
-        {
-            if (AllClearWindow != null)
-            {
-                AllClearWindow.Close();
-            }
-            ((LobbyWindow.IListener)this).ClearGameData();
-        }
-
-        void AllStageClearWindow.IListener.CancelAllClearWindow()
-        {
-            if (AllClearWindow != null)
-            {
-                AllClearWindow.Close();
-            }
-            GoToLobby();
-        }
     }
 }
-
