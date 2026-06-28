@@ -12,6 +12,7 @@ namespace NTGame
             void StartStage();
             void ResetStage();
             void ClearGameData();
+            void ShowGameRule();
         }
 
         public TextMeshProUGUI GameStartTxt;
@@ -57,6 +58,11 @@ namespace NTGame
         public void OnClickClearGameData()
         {
             _listener.ClearGameData();
+        }
+
+        public void OnClickGameRule()
+        {
+            _listener.ShowGameRule();
         }
     }
 }

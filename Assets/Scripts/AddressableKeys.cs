@@ -13,6 +13,7 @@ namespace NTGame
             public const string Lobby = "lobby_window";
             public const string Tile = "tile_window";
             public const string GameResult = "game_result_window";
+            public const string GameRule = "game_rule_window";
         }
 
         /// <summary> UI 컴포넌트 프리팹 </summary>

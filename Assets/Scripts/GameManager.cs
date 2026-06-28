@@ -24,6 +24,7 @@ namespace NTGame
         LobbyWindow _lobbyWindow;
         TileWindow _tileWindow;
         GameResultWindow _resultWindow;
+        GameRuleWindow _gameRuleWindow;
 
         readonly List<AsyncOperationHandle<GameObject>> _windowHandles = new List<AsyncOperationHandle<GameObject>>(4);
 
@@ -89,6 +90,7 @@ namespace NTGame
             _lobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
             _tileWindow.Close();
             _resultWindow.Close();
+            _gameRuleWindow.Close();
         }
 
         async UniTask LoadWindowsAsync(CancellationToken cancellationToken)
@@ -96,6 +98,7 @@ namespace NTGame
             _lobbyWindow = await InstantiateWindowAsync<LobbyWindow>(AddressableKeys.Windows.Lobby, cancellationToken);
             _tileWindow = await InstantiateWindowAsync<TileWindow>(AddressableKeys.Windows.Tile, cancellationToken);
             _resultWindow = await InstantiateWindowAsync<GameResultWindow>(AddressableKeys.Windows.GameResult, cancellationToken);
+            _gameRuleWindow = await InstantiateWindowAsync<GameRuleWindow>(AddressableKeys.Windows.GameRule, cancellationToken);
         }
 
         async UniTask<T> InstantiateWindowAsync<T>(string address, CancellationToken cancellationToken) where T : BaseWindow
@@ -294,6 +297,11 @@ namespace NTGame
 
             var activeScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(activeScene.buildIndex);
+        }
+
+        void LobbyWindow.IListener.ShowGameRule()
+        {
+            _gameRuleWindow.Open();
         }
 
         void TileWindow.IListener.ExitGame()

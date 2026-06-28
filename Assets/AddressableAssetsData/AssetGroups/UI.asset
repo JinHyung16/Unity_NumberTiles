@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1e0ff2c37f4ebec429cdb0a615ff24ae
+    m_Address: game_rule_window
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2b7277760a21f934083cc23b3380e71b
     m_Address: game_result_window
     m_ReadOnly: 0

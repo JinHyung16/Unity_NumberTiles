@@ -1,15 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace NTGame
 {
     public class PoolManager : SceneSingleton<PoolManager>
     {
-        static readonly string TileUIPrefabResourcePath = "Prefabs/Components/TileUIComponent";
         const int PrewarmCount = 100;
 
         Transform _poolRoot;
         TileUIComponent _prefab;
+        AsyncOperationHandle<GameObject> _prefabHandle;
 
         readonly Stack<TileUIComponent> _poolStk = new Stack<TileUIComponent>(200);
 
@@ -76,8 +78,17 @@ namespace NTGame
             if (_prefab != null)
                 return;
 
-            _prefab = Resources.Load<TileUIComponent>(TileUIPrefabResourcePath);
-            Debug.Assert(_prefab != null, $"[PoolManager] Resources.Load 실패: \"{TileUIPrefabResourcePath}\" (Assets/Resources 아래에 TileUIComponent 프리팹이 있어야 합니다)");
+            _prefabHandle = Addressables.LoadAssetAsync<GameObject>(AddressableKeys.Components.TileUI);
+            GameObject prefabGo = _prefabHandle.WaitForCompletion();
+            _prefab = prefabGo != null ? prefabGo.GetComponent<TileUIComponent>() : null;
+
+            Debug.Assert(_prefab != null, $"[PoolManager] Addressables 로드 실패: \"{AddressableKeys.Components.TileUI}\" (해당 주소로 TileUIComponent 프리팹이 등록돼 있어야 합니다)");
+        }
+
+        void OnDestroy()
+        {
+            if (_prefabHandle.IsValid())
+                Addressables.Release(_prefabHandle);
         }
     }
 }
