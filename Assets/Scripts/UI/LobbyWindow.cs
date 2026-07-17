@@ -57,7 +57,7 @@ namespace NTGame
 
         public void OnClickClearGameData()
         {
-            _listener.ClearGameData();
+            _listener.ClearGameData(); 
         }
 
         public void OnClickGameRule()
