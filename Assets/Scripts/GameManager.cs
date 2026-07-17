@@ -16,12 +16,12 @@ namespace NTGame
         , TileWindow.IListener
         , GameResultWindow.IListener
     {
-        public Camera UICamera;
+        [SerializeField] private Camera _uiCamera;
+        [SerializeField] private LobbyWindow _lobbyWindow;
+        [SerializeField] private Transform _windowRoot;
 
-        [Tooltip("어드레서블로 생성한 윈도우의 부모. 비워두면 씬 루트에 생성된다.")]
-        public Transform WindowRoot;
+        public Camera UICamera => _uiCamera;
 
-        LobbyWindow _lobbyWindow;
         TileWindow _tileWindow;
         GameResultWindow _resultWindow;
         GameRuleWindow _gameRuleWindow;
@@ -95,7 +95,7 @@ namespace NTGame
 
         async UniTask LoadWindowsAsync(CancellationToken cancellationToken)
         {
-            _lobbyWindow = await InstantiateWindowAsync<LobbyWindow>(AddressableKeys.Windows.Lobby, cancellationToken);
+            //_lobbyWindow = await InstantiateWindowAsync<LobbyWindow>(AddressableKeys.Windows.Lobby, cancellationToken);
             _tileWindow = await InstantiateWindowAsync<TileWindow>(AddressableKeys.Windows.Tile, cancellationToken);
             _resultWindow = await InstantiateWindowAsync<GameResultWindow>(AddressableKeys.Windows.GameResult, cancellationToken);
             _gameRuleWindow = await InstantiateWindowAsync<GameRuleWindow>(AddressableKeys.Windows.GameRule, cancellationToken);
@@ -103,7 +103,7 @@ namespace NTGame
 
         async UniTask<T> InstantiateWindowAsync<T>(string address, CancellationToken cancellationToken) where T : BaseWindow
         {
-            AsyncOperationHandle<GameObject> handle = Addressables.InstantiateAsync(address, WindowRoot);
+            AsyncOperationHandle<GameObject> handle = Addressables.InstantiateAsync(address, _windowRoot);
             _windowHandles.Add(handle);
 
             GameObject instance = await handle.ToUniTask(cancellationToken: cancellationToken);
@@ -114,7 +114,7 @@ namespace NTGame
             var canvas = instance.GetComponent<Canvas>();
             if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceCamera)
             {
-                canvas.worldCamera = UICamera;
+                canvas.worldCamera = _uiCamera;
             }
 
             return window;
@@ -122,7 +122,7 @@ namespace NTGame
 
         void ReleaseWindows()
         {
-            _lobbyWindow = null;
+            //_lobbyWindow = null;
             _tileWindow = null;
             _resultWindow = null;
 
@@ -250,7 +250,6 @@ namespace NTGame
 
             if (_lobbyWindow != null)
             {
-                _lobbyWindow.gameObject.SetActive(true);
                 _lobbyWindow.Open(_curStageKey, HasStageProgress(_curStageKey), this);
             }
 
