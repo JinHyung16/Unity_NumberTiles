@@ -1,13 +1,7 @@
 namespace NTGame
 {
-    /// <summary>
-    /// 어드레서블 에셋 주소(Address) 모음.
-    /// Addressables 로 로드할 때 문자열을 직접 쓰지 말고 여기 상수를 통해 호출한다.
-    /// 각 문자열은 Addressables Groups 창의 Address 와 정확히 일치해야 한다.
-    /// </summary>
     public static class AddressableKeys
     {
-        /// <summary> 풀스크린 윈도우 프리팹 </summary>
         public static class Windows
         {
             public const string Lobby = "lobby_window";
@@ -16,7 +10,6 @@ namespace NTGame
             public const string GameRule = "game_rule_window";
         }
 
-        /// <summary> UI 컴포넌트 프리팹 </summary>
         public static class Components
         {
             public const string TileUI = "tile_ui_component";

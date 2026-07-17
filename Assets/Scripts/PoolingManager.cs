@@ -35,7 +35,7 @@ namespace NTGame
 
         public void Release(TileUIComponent item)
         {
-            if (item == null) 
+            if (item == null)
                 return;
 
             item.Clear();

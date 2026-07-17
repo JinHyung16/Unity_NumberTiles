@@ -16,16 +16,13 @@ namespace NTGame
         public int Cols;
         public int CellCount;
 
-        // board (row-major)
         public int[] Values;
         public bool[] Active;
 
-        // runtime state
         public int SpawnCursorIndex;
         public int NextEmptyScanIndex;
         public ItemType PendingTargetItemType;
 
-        // 1~9
         public bool[] DigitSeen;
         public bool[] DigitCleared;
         public int[] DigitCount;

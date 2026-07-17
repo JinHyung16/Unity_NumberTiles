@@ -46,7 +46,6 @@ namespace NTGame
 
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
 
-            // Pivot at left-center so the rect grows out from point A toward B.
             _lineRect.anchorMin = new Vector2(0.5f, 0.5f);
             _lineRect.anchorMax = new Vector2(0.5f, 0.5f);
             _lineRect.pivot = new Vector2(0f, 0.5f);
@@ -75,7 +74,6 @@ namespace NTGame
             SetVisible(true);
             SetAlpha(1f);
 
-            // 1) Draw-in: sizeDelta.x  0 -> len (ease-out cubic)
             float t = 0f;
             while (t < DrawInSeconds)
             {
@@ -87,11 +85,9 @@ namespace NTGame
             }
             _lineRect.sizeDelta = new Vector2(len, Thickness);
 
-            // 2) Hold
             if (HoldSeconds > 0f)
                 yield return new WaitForSecondsRealtime(HoldSeconds);
 
-            // 3) Fade-out: alpha 1->0 + thickness 1.0x -> EndThicknessScale (ease-in quad)
             t = 0f;
             float startThickness = Thickness;
             float endThickness = Thickness * EndThicknessScale;

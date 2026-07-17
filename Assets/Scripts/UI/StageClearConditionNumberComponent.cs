@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace NTGame
 {
-    public class StageClearConditionNumberComponent 
+    public class StageClearConditionNumberComponent
         : MonoBehaviour
         , ITileObserver
     {

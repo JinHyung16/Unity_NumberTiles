@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +29,13 @@ namespace NTGame
         public Color RemovedTextColor = new Color(0.65f, 0.65f, 0.65f, 0.9f);
         public Color SelectedTileColor = new Color(1f, 0.92f, 0.3f, 1f);
         public Color LineSwapPrimaryColor = new Color(1f, 0.55f, 0.2f, 1f);
+        public Color MismatchTileColor = new Color(0.86f, 0.36f, 0.38f, 1f);
+
+        const float MismatchShakeAmplitude = 6f;
+        const float MismatchShakeFrequency = 60f;
+
+        Coroutine _mismatchRoutine;
+        Vector2 _mismatchShakeBase;
 
         TileCoordStruct _tileStruct = default;
         IListener _listener;
@@ -47,6 +55,7 @@ namespace NTGame
 
         public void Clear()
         {
+            StopMismatchFlash();
             SetActive(false);
             Number = 0;
             IsOpenCell = false;
@@ -73,6 +82,7 @@ namespace NTGame
 
         public void SetOpen(bool isOpen)
         {
+            StopMismatchFlash();
             IsOpenCell = isOpen;
             if (isOpen == false)
             {
@@ -90,12 +100,11 @@ namespace NTGame
 
         public void SetValue(int value)
         {
-            if (IsOpenCell == false) 
+            if (IsOpenCell == false)
                 return;
 
-            // value > 0 : 활성 타일(선택/제거 가능)
-            // value = 0 : 빈 칸(표시 없음)
-            // value < 0 : 제거된 타일(숫자 유지, 디밍, 클릭 불가)
+            StopMismatchFlash();
+
             if (value > 0)
             {
                 IsActiveTile = true;
@@ -118,7 +127,6 @@ namespace NTGame
                 return;
             }
 
-            // removed
             int abs = Mathf.Abs(value);
             IsActiveTile = false;
             Number = abs;
@@ -136,7 +144,73 @@ namespace NTGame
             if (IsActiveTile == false)
                 return;
 
+            StopMismatchFlash();
             BGImg.color = selected ? SelectedTileColor : ActiveTileColor;
+        }
+
+        public void ShowMismatch(float duration)
+        {
+            if (IsOpenCell == false || IsActiveTile == false)
+                return;
+
+            StopMismatchFlash();
+            SetBGAndOutlineColor(MismatchTileColor);
+
+            if (isActiveAndEnabled)
+            {
+                if (BGImg != null)
+                    _mismatchShakeBase = BGImg.rectTransform.anchoredPosition;
+
+                _mismatchRoutine = StartCoroutine(MismatchRoutine(duration));
+            }
+            else
+            {
+                RestoreActiveColor();
+            }
+        }
+
+        IEnumerator MismatchRoutine(float duration)
+        {
+            RectTransform shakeTrans = BGImg != null ? BGImg.rectTransform : null;
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+
+                if (shakeTrans != null)
+                {
+                    float damper = 1f - Mathf.Clamp01(elapsed / duration);
+                    float offsetX = Mathf.Sin(elapsed * MismatchShakeFrequency) * MismatchShakeAmplitude * damper;
+                    shakeTrans.anchoredPosition = _mismatchShakeBase + new Vector2(offsetX, 0f);
+                }
+
+                yield return null;
+            }
+
+            if (shakeTrans != null)
+                shakeTrans.anchoredPosition = _mismatchShakeBase;
+
+            _mismatchRoutine = null;
+            RestoreActiveColor();
+        }
+
+        void RestoreActiveColor()
+        {
+            if (IsActiveTile)
+                SetBGAndOutlineColor(ActiveTileColor);
+        }
+
+        void StopMismatchFlash()
+        {
+            if (_mismatchRoutine == null)
+                return;
+
+            StopCoroutine(_mismatchRoutine);
+            _mismatchRoutine = null;
+
+            if (BGImg != null)
+                BGImg.rectTransform.anchoredPosition = _mismatchShakeBase;
         }
 
         public void SetLineSwapHighlight(LineSwapHighlightType highlightType)
@@ -145,6 +219,8 @@ namespace NTGame
             {
                 return;
             }
+
+            StopMismatchFlash();
 
             if (highlightType == LineSwapHighlightType.Primary)
             {

@@ -95,7 +95,6 @@ namespace NTGame
 
         async UniTask LoadWindowsAsync(CancellationToken cancellationToken)
         {
-            //_lobbyWindow = await InstantiateWindowAsync<LobbyWindow>(AddressableKeys.Windows.Lobby, cancellationToken);
             _tileWindow = await InstantiateWindowAsync<TileWindow>(AddressableKeys.Windows.Tile, cancellationToken);
             _resultWindow = await InstantiateWindowAsync<GameResultWindow>(AddressableKeys.Windows.GameResult, cancellationToken);
             _gameRuleWindow = await InstantiateWindowAsync<GameRuleWindow>(AddressableKeys.Windows.GameRule, cancellationToken);
@@ -122,7 +121,6 @@ namespace NTGame
 
         void ReleaseWindows()
         {
-            //_lobbyWindow = null;
             _tileWindow = null;
             _resultWindow = null;
 

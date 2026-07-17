@@ -12,7 +12,6 @@ namespace NTGame
         {
             unchecked
             {
-                // (h1 * prime) + h2
                 return (h1 * 397) ^ h2;
             }
         }

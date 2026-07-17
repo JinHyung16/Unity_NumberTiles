@@ -43,9 +43,9 @@ namespace NTGame
         void RefreshCounts()
         {
             var tileManager = TileManager.Instance;
-            
-            AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();           
-            BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();     
+
+            AddTilesCountTxt.text = tileManager.GetItemCount(ItemType.AddTiles).ToString();
+            BreakOneTileCountTxt.text = tileManager.GetItemCount(ItemType.BreakOneTile).ToString();
             LineSwapCountTxt.text = tileManager.GetItemCount(ItemType.LineSwap).ToString();
             DiagonalClearCountTxt.text = tileManager.GetItemCount(ItemType.DiagonalClear).ToString();
         }
@@ -53,7 +53,7 @@ namespace NTGame
         void SyncTogglesToPending(ItemType pending)
         {
             _syncing = true;
-            
+
             BreakOneTileToggle.isOn = (pending == ItemType.BreakOneTile);
             LineSwapToggle.isOn = (pending == ItemType.LineSwap);
             DiagonalClearToggle.isOn = (pending == ItemType.DiagonalClear);

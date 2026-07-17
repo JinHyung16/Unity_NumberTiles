@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace NTGame
 {
-    /// <summary>
-    /// 게임 규칙 안내(GameRuleWindow)에서 한 페이지씩 보여줄 이미지 + 설명 텍스트 데이터.
-    /// 페이지 순서는 Pages 리스트의 순서를 그대로 따른다.
-    /// </summary>
     [CreateAssetMenu(fileName = "GameRuleData", menuName = "NTGame/Game Rule Data", order = 0)]
     public class GameRuleDataSO : ScriptableObject
     {

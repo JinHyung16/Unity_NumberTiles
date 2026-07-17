@@ -12,6 +12,7 @@ namespace NTGame
         CellCountChanged = 7,
         LineCleared = 8,
         DigitCleared = 9,
+        MismatchPair = 10,
 
         ItemCountChanged = 100,
         PendingTargetChanged = 101,

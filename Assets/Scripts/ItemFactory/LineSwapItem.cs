@@ -1,6 +1,5 @@
 namespace NTGame
 {
-    // 선택한 두 line을 골라 교체함
     public class LineSwapItem : ITileItem
     {
         public ItemType ItemType => ItemType.LineSwap;

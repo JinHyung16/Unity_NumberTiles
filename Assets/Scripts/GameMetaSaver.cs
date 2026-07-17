@@ -12,7 +12,7 @@ namespace NTGame
         public int ClearedStageKey;
         public int LastStageKey;
     }
-    
+
 
     public static class GameMetaSaver
     {

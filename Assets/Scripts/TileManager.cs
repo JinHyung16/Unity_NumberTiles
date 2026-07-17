@@ -460,9 +460,6 @@ namespace NTGame
         {
             int spawnCount = AddTilesSpawnPerBatch;
 
-            // 클리어 해야 할 숫자가 1종류만 남았고 보드에 그 숫자가 홀수 개로 있으면,
-            // 1개만 추가해서 짝수로 맞춤. (그렇지 않으면 N개 추가 후에도 1개가 남아 stuck 상태 발생)
-            // ex) 7만 남고 보드에 7이 1개 → 14개 추가 시 총 15개로 홀수 → 짝 맞춰도 1개 남음.
             if (TryGetSingleUnclearedDigit(out int lastDigit))
             {
                 if ((_digitCount[lastDigit] & 1) == 1)
@@ -883,18 +880,11 @@ namespace NTGame
 
             Notify(new TileNotify
             {
-                Type = TileNotifyType.CellSelectedChanged,
+                Type = TileNotifyType.MismatchPair,
                 Row = _first.Row,
                 Col = _first.Col,
-                Flag = false
-            });
-
-            Notify(new TileNotify
-            {
-                Type = TileNotifyType.CellSelectedChanged,
-                Row = second.Row,
-                Col = second.Col,
-                Flag = false
+                Row2 = second.Row,
+                Col2 = second.Col
             });
 
             _first = default;
@@ -991,7 +981,6 @@ namespace NTGame
                 return IsBlockedOnCol(a, b) == false;
             }
 
-            // 대각선: |행차| == |열차| (1칸 인접 또는 빈셀 건너뜀)
             if (Math.Abs(dr) == Math.Abs(dc))
             {
                 if (Math.Abs(dr) == 1)
@@ -1002,7 +991,6 @@ namespace NTGame
                 return IsBlockedOnDiagonal(a, b) == false;
             }
 
-            // 줄 연결: 한 줄 끝 → 다음 줄 처음, 빈셀 경유 허용
             return IsBlockedOnFlatRowMajor(a, b) == false;
         }
 

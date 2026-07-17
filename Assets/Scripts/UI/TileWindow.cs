@@ -6,13 +6,15 @@ using UnityEngine.UI;
 
 namespace NTGame
 {
-    public class TileWindow 
+    public class TileWindow
         : BaseWindow
         , ITileObserver
         , TileUIComponent.IListener
         , StageClearConditionNumberComponent.IListener
         , StageItemGroupComponent.IListener
     {
+        const float MismatchFlashDuration = 0.3f;
+
         public interface IListener
         {
             void ExitGame();
@@ -24,7 +26,7 @@ namespace NTGame
         public RectTransform CompRoot;
         public RectTransform TileLineRoot;
         public TileLineRender TileLineRender;
-        
+
         public StageClearConditionNumberComponent ConditionComponent;
         public StageItemGroupComponent StageItemComp;
         public ToastMessagePanel ToastMessage;
@@ -92,6 +94,17 @@ namespace NTGame
                 tile.SetSelected(selected);
         }
 
+        public void ShowMismatchPair(int r1, int c1, int r2, int c2)
+        {
+            var a = GetTile(r1, c1);
+            if (a != null)
+                a.ShowMismatch(MismatchFlashDuration);
+
+            var b = GetTile(r2, c2);
+            if (b != null)
+                b.ShowMismatch(MismatchFlashDuration);
+        }
+
         public void ShowMatchedLine(int r1, int c1, int r2, int c2)
         {
             if (TileLineRender == null || TileLineRoot == null)
@@ -135,6 +148,12 @@ namespace NTGame
             if (notify.Type == TileNotifyType.MatchedPair)
             {
                 ShowMatchedLine(notify.Row, notify.Col, notify.Row2, notify.Col2);
+                return;
+            }
+
+            if (notify.Type == TileNotifyType.MismatchPair)
+            {
+                ShowMismatchPair(notify.Row, notify.Col, notify.Row2, notify.Col2);
                 return;
             }
 

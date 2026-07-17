@@ -1,6 +1,5 @@
 namespace NTGame
 {
-    //public class EnumTypes { }
     public enum ItemType
     {
         None = 0,
